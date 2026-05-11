@@ -1,0 +1,69 @@
+import { FileSpreadsheet, Moon, RotateCcw, Sun } from "lucide-react";
+import type { RangeMode } from "../types";
+import { ModeToggle } from "./ModeToggle";
+
+interface Props {
+  fileName: string;
+  measurementCount: number;
+  mode: RangeMode;
+  onModeChange: (m: RangeMode) => void;
+  onReset: () => void;
+  theme: "light" | "dark";
+  onThemeToggle: () => void;
+}
+
+export function TopBar({
+  fileName,
+  measurementCount,
+  mode,
+  onModeChange,
+  onReset,
+  theme,
+  onThemeToggle,
+}: Props) {
+  return (
+    <header className="no-print sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300">
+            <FileSpreadsheet className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-col">
+            <div className="truncate text-sm font-medium" title={fileName}>
+              {fileName}
+            </div>
+            <div className="hidden text-xs text-slate-500 dark:text-slate-400 md:block">
+              {measurementCount.toLocaleString()} measurements
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden md:block">
+          <ModeToggle mode={mode} onChange={onModeChange} />
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onThemeToggle}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New file</span>
+          </button>
+        </div>
+      </div>
+      <div className="border-t border-slate-200 px-4 py-2 md:hidden dark:border-slate-800">
+        <ModeToggle mode={mode} onChange={onModeChange} />
+      </div>
+    </header>
+  );
+}
