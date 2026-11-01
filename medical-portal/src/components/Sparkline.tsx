@@ -2,22 +2,25 @@ import { Line, LineChart, ReferenceArea, ResponsiveContainer, YAxis } from "rech
 import type { Marker, ReferenceRange } from "../types";
 import { chartScale } from "../lib/chartScale";
 import { chartPoints, type ChartPoint } from "../lib/chartPoints";
+import { chartTheme, type ChartTheme } from "../lib/chartTheme";
+import { useIsDark } from "../hooks/useIsDark";
 
 interface Props {
   marker: Marker;
   range: ReferenceRange;
 }
 
-const LINE = "rgb(15 118 110)";
-
 /** Only detection-limit points get a (hollow) dot, so they stand out from real readings. */
-function CensoredDot(props: { cx?: number; cy?: number; payload?: ChartPoint }) {
-  const { cx, cy, payload } = props;
+function CensoredDot(props: { cx?: number; cy?: number; payload?: ChartPoint; theme: ChartTheme }) {
+  const { cx, cy, payload, theme } = props;
   if (cx == null || cy == null || !payload?.censored) return null;
-  return <circle cx={cx} cy={cy} r={2.5} fill="white" stroke={LINE} strokeWidth={1.25} />;
+  return (
+    <circle cx={cx} cy={cy} r={2.5} fill={theme.surface} stroke={theme.line} strokeWidth={1.25} />
+  );
 }
 
 export function Sparkline({ marker, range }: Props) {
+  const theme = chartTheme(useIsDark());
   const data = chartPoints(marker);
   if (data.length < 2) {
     return <span className="inline-block w-24 text-center text-xs text-slate-400">—</span>;
@@ -46,7 +49,7 @@ export function Sparkline({ marker, range }: Props) {
             <ReferenceArea
               y1={band[0]}
               y2={band[1]}
-              fill="rgb(16 185 129)"
+              fill={theme.band}
               fillOpacity={0.12}
               stroke="none"
             />
@@ -54,9 +57,9 @@ export function Sparkline({ marker, range }: Props) {
           <Line
             type="monotone"
             dataKey="v"
-            stroke={LINE}
+            stroke={theme.line}
             strokeWidth={1.5}
-            dot={<CensoredDot />}
+            dot={<CensoredDot theme={theme} />}
             activeDot={false}
             isAnimationActive={false}
           />

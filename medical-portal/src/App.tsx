@@ -3,7 +3,7 @@ import { Disclaimer } from "./components/Disclaimer";
 import { TopBar } from "./components/TopBar";
 import { FileUpload } from "./components/FileUpload";
 import { ReadmePanel } from "./components/ReadmePanel";
-import { SheetTabs } from "./components/SheetTabs";
+import { SHEET_PANEL_ID, SheetTabs, sheetTabId } from "./components/SheetTabs";
 import { Summary, type FilterKey } from "./components/Summary";
 import { CategorySection } from "./components/CategorySection";
 import { Footer } from "./components/Footer";
@@ -127,7 +127,16 @@ export default function App() {
           )}
 
           {currentSheet && (
-            <>
+            <div
+              className="space-y-6"
+              {...(workbook.data.length > 1
+                ? {
+                    role: "tabpanel",
+                    id: SHEET_PANEL_ID,
+                    "aria-labelledby": sheetTabId(currentSheet.name),
+                  }
+                : {})}
+            >
               <Summary
                 sheet={currentSheet}
                 mode={mode}
@@ -171,7 +180,7 @@ export default function App() {
                   ))
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>

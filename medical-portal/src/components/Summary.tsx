@@ -78,34 +78,46 @@ export function Summary({ sheet, mode, filter, onFilter }: Props) {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {tiles.map((tile) => {
-        const isActive =
-          tile.selectable &&
-          (filter === tile.key || (tile.key === "all" && filter == null));
-        return (
-          <button
-            key={tile.key}
-            disabled={!tile.selectable}
-            onClick={() => {
-              if (!tile.selectable) return;
-              if (tile.key === "all") onFilter(null);
-              else onFilter(filter === tile.key ? null : (tile.key as FilterKey));
-            }}
-            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-colors ${
-              isActive
-                ? "border-teal-500 bg-teal-50/60 dark:border-teal-400 dark:bg-teal-950/30"
-                : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
-            } ${!tile.selectable ? "cursor-default" : "cursor-pointer"}`}
-          >
+        const body = (
+          <>
             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
               {tile.icon}
               <span>{tile.label}</span>
             </div>
-            <div className="text-2xl font-semibold tracking-tight tabnum">
-              {tile.value}
-            </div>
+            <div className="text-2xl font-semibold tracking-tight tabnum">{tile.value}</div>
             {tile.sub && (
               <div className="text-xs text-slate-500 dark:text-slate-400">{tile.sub}</div>
             )}
+          </>
+        );
+        const base = "flex flex-col items-start gap-1 rounded-xl border p-4 text-left";
+        if (!tile.selectable) {
+          return (
+            <div
+              key={tile.key}
+              className={`${base} border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900`}
+            >
+              {body}
+            </div>
+          );
+        }
+        const isActive = filter === tile.key || (tile.key === "all" && filter == null);
+        return (
+          <button
+            key={tile.key}
+            type="button"
+            aria-pressed={isActive}
+            onClick={() => {
+              if (tile.key === "all") onFilter(null);
+              else onFilter(filter === tile.key ? null : (tile.key as FilterKey));
+            }}
+            className={`${base} cursor-pointer transition-colors ${
+              isActive
+                ? "border-teal-500 bg-teal-50/60 dark:border-teal-400 dark:bg-teal-950/30"
+                : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+            }`}
+          >
+            {body}
           </button>
         );
       })}

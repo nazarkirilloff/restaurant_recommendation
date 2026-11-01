@@ -14,6 +14,8 @@ import type { Marker, ReferenceRange } from "../types";
 import { formatDateLong, formatDateShort } from "../lib/format";
 import { chartScale, formatTick } from "../lib/chartScale";
 import { chartPoints, type ChartPoint } from "../lib/chartPoints";
+import { chartTheme, type ChartTheme } from "../lib/chartTheme";
+import { useIsDark } from "../hooks/useIsDark";
 
 interface Props {
   marker: Marker;
@@ -22,18 +24,20 @@ interface Props {
   unit?: string;
 }
 
-const LINE = "rgb(15 118 110)";
-const BAND = "rgb(16 185 129)";
-const SECONDARY = "rgb(148 163 184)";
-
 /** Filled dot for a measured value, hollow dot for a detection-limit value. */
-function Dot(props: { cx?: number; cy?: number; payload?: ChartPoint; r?: number }) {
-  const { cx, cy, payload, r = 3.5 } = props;
+function Dot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: ChartPoint;
+  r?: number;
+  theme: ChartTheme;
+}) {
+  const { cx, cy, payload, r = 3.5, theme } = props;
   if (cx == null || cy == null || !payload) return null;
   return payload.censored ? (
-    <circle cx={cx} cy={cy} r={r + 0.5} fill="white" stroke={LINE} strokeWidth={1.5} />
+    <circle cx={cx} cy={cy} r={r + 0.5} fill={theme.surface} stroke={theme.line} strokeWidth={1.5} />
   ) : (
-    <circle cx={cx} cy={cy} r={r} fill={LINE} />
+    <circle cx={cx} cy={cy} r={r} fill={theme.line} />
   );
 }
 
@@ -90,6 +94,7 @@ function linesFor(range?: ReferenceRange): number[] {
 }
 
 export function TrendChart({ marker, active, secondary, unit }: Props) {
+  const theme = chartTheme(useIsDark());
   const data = chartPoints(marker);
 
   if (data.length === 0) {
@@ -112,7 +117,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 16, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="2 3" stroke="rgb(226 232 240)" />
+            <CartesianGrid strokeDasharray="2 3" stroke={theme.grid} />
             <XAxis
               dataKey="t"
               type="number"
@@ -120,15 +125,15 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
               domain={["dataMin", "dataMax"]}
               padding={{ left: 12, right: 12 }}
               tickFormatter={(v) => formatDateShort(new Date(v))}
-              stroke="rgb(148 163 184)"
-              tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
+              stroke={theme.axis}
+              tick={{ fontSize: 11, fill: theme.tick }}
             />
             <YAxis
               domain={domain}
               ticks={ticks}
               tickFormatter={formatTick}
-              stroke="rgb(148 163 184)"
-              tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
+              stroke={theme.axis}
+              tick={{ fontSize: 11, fill: theme.tick }}
               width={44}
               allowDataOverflow
             />
@@ -136,7 +141,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
               <ReferenceArea
                 y1={band[0]}
                 y2={band[1]}
-                fill={BAND}
+                fill={theme.band}
                 fillOpacity={0.12}
                 stroke="none"
               />
@@ -145,7 +150,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
               <ReferenceLine
                 key={y}
                 y={y}
-                stroke={SECONDARY}
+                stroke={theme.secondary}
                 strokeDasharray="4 3"
                 strokeOpacity={0.7}
               />
@@ -154,10 +159,10 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
             <Line
               type="monotone"
               dataKey="v"
-              stroke={LINE}
+              stroke={theme.line}
               strokeWidth={2}
-              dot={<Dot />}
-              activeDot={<Dot r={5} />}
+              dot={<Dot theme={theme} />}
+              activeDot={<Dot r={5} theme={theme} />}
               isAnimationActive={false}
             />
           </LineChart>
@@ -179,7 +184,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
         {hasCensored && (
           <span className="flex items-center gap-1.5">
             <span
-              className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-teal-700"
+              className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-teal-700 dark:border-teal-400"
               aria-hidden
             />
             Detection limit (true value is beyond it)
