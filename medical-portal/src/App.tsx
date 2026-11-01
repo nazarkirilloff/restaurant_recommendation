@@ -7,7 +7,7 @@ import { SheetTabs } from "./components/SheetTabs";
 import { Summary, type FilterKey } from "./components/Summary";
 import { CategorySection } from "./components/CategorySection";
 import { Footer } from "./components/Footer";
-import { flagStatus } from "./lib/flagStatus";
+import { isOutOfRange, latestStatus } from "./lib/ranges";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
 
 function useTheme(): ["light" | "dark", () => void] {
@@ -57,17 +57,9 @@ export default function App() {
     const out: { category: string; markers: Marker[]; outOfRangeCount: number }[] = [];
     for (const category of currentSheet.categories) {
       const inCat = currentSheet.markers.filter((m) => m.category === category);
-      const decorated = inCat.map((m) => {
-        const range =
-          mode === "biohacker" && m.biohacker.kind !== "none"
-            ? m.biohacker
-            : m.standard;
-        const latest = m.measurements[m.measurements.length - 1];
-        const status = latest ? flagStatus(latest.value, range) : "unknown";
-        return { m, status };
-      });
+      const decorated = inCat.map((m) => ({ m, status: latestStatus(m, mode) }));
       const visible = decorated.filter(({ status }) => {
-        if (filter === "outOfRange") return status === "high" || status === "low";
+        if (filter === "outOfRange") return isOutOfRange(status);
         if (filter === "qualitativeFail") return status === "mismatch";
         return true;
       });
@@ -75,9 +67,7 @@ export default function App() {
       out.push({
         category,
         markers: visible.map((d) => d.m),
-        outOfRangeCount: decorated.filter(
-          ({ status }) => status === "high" || status === "low",
-        ).length,
+        outOfRangeCount: decorated.filter(({ status }) => isOutOfRange(status)).length,
       });
     }
     return out;

@@ -6,8 +6,10 @@ import { Sparkline } from "./Sparkline";
 import { TrendChart } from "./TrendChart";
 import { Explanation } from "./Explanation";
 import { flagStatus, statusLabel, statusTone } from "../lib/flagStatus";
-import { formatRange, rangeUnit } from "../lib/parseReferenceRange";
+import { formatRange, isNumericRange, rangeUnit } from "../lib/parseReferenceRange";
 import { formatDateLong } from "../lib/format";
+import { activeRange } from "../lib/ranges";
+import { trend, type TrendTone } from "../lib/trend";
 
 interface Props {
   marker: Marker;
@@ -22,32 +24,22 @@ const TONE_TEXT: Record<string, string> = {
   muted: "text-slate-500 dark:text-slate-400",
 };
 
+const TREND_TEXT: Record<TrendTone, string> = {
+  better: "text-emerald-600 dark:text-emerald-400",
+  worse: "text-rose-600 dark:text-rose-400",
+  neutral: "text-slate-400 dark:text-slate-500",
+};
+
 export function MarkerRow({ marker, mode }: Props) {
   const [open, setOpen] = useState(false);
-  const primaryRange = mode === "biohacker" ? marker.biohacker : marker.standard;
-  const secondaryRange = mode === "biohacker" ? marker.standard : marker.biohacker;
-  const activeRange =
-    primaryRange.kind === "none" ? marker.standard : primaryRange;
+  const { range, fellBack, other } = activeRange(marker, mode);
 
   const latest = marker.measurements[marker.measurements.length - 1];
   const previous = marker.measurements[marker.measurements.length - 2];
-  const status = latest ? flagStatus(latest.value, activeRange) : "unknown";
+  const status = latest ? flagStatus(latest.value, range) : "unknown";
+  const change = trend(previous, latest, range);
 
-  let delta: string | null = null;
-  if (
-    latest &&
-    previous &&
-    (latest.value.kind === "number" || latest.value.kind === "operator") &&
-    (previous.value.kind === "number" || previous.value.kind === "operator")
-  ) {
-    const diff = latest.value.numeric - previous.value.numeric;
-    if (Math.abs(diff) > 1e-9) {
-      const sign = diff > 0 ? "↗" : "↘";
-      delta = `${sign} ${Math.abs(diff).toFixed(2).replace(/\.?0+$/, "")}`;
-    }
-  }
-
-  const unit = rangeUnit(activeRange);
+  const unit = rangeUnit(range) ?? rangeUnit(marker.standard);
   const canExpand = marker.measurements.length > 0;
 
   return (
@@ -87,18 +79,30 @@ export function MarkerRow({ marker, mode }: Props) {
           {unit && (
             <span className="text-xs text-slate-500 dark:text-slate-400">{unit}</span>
           )}
-          {delta && (
-            <span className="text-xs text-slate-400 tabnum dark:text-slate-500">
-              {delta}
+          {change && (
+            <span
+              className={`text-xs tabnum ${TREND_TEXT[change.tone]}`}
+              title={change.description}
+            >
+              <span aria-hidden>{change.direction === "up" ? "↗" : "↘"} </span>
+              {change.amount}
+              <span className="sr-only">. {change.description}</span>
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-3 md:justify-end">
-          <span className="tabnum text-xs text-slate-500 dark:text-slate-400">
-            {formatRange(activeRange)}
+          <span className="flex flex-col text-right">
+            <span className="tabnum text-xs text-slate-500 dark:text-slate-400">
+              {formatRange(range)}
+            </span>
+            {fellBack && isNumericRange(range) && (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                Standard · no biohacker target
+              </span>
+            )}
           </span>
-          <Sparkline marker={marker} range={activeRange} />
+          <Sparkline marker={marker} range={range} />
         </div>
 
         {canExpand && (
@@ -120,29 +124,21 @@ export function MarkerRow({ marker, mode }: Props) {
                 {formatRange(marker.standard)}
               </span>
             </div>
-            {marker.biohacker.kind !== "none" && (
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 dark:text-slate-400">Biohacker:</span>
-                <span className="tabnum font-medium">
-                  {formatRange(marker.biohacker)}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 dark:text-slate-400">Biohacker:</span>
+              <span className="tabnum font-medium">
+                {marker.biohacker.kind !== "none"
+                  ? formatRange(marker.biohacker)
+                  : "no target"}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-slate-500 dark:text-slate-400">Latest:</span>
               <span className="font-medium">{statusLabel(status)}</span>
             </div>
           </div>
 
-          <TrendChart
-            marker={marker}
-            active={activeRange}
-            secondary={
-              secondaryRange.kind !== "none" && secondaryRange !== activeRange
-                ? secondaryRange
-                : undefined
-            }
-          />
+          <TrendChart marker={marker} active={range} secondary={other} unit={unit} />
 
           <div className="mt-4">
             <Explanation marker={marker} status={status} />
@@ -160,7 +156,7 @@ export function MarkerRow({ marker, mode }: Props) {
                 </thead>
                 <tbody>
                   {[...marker.measurements].reverse().map((m, i) => {
-                    const s = flagStatus(m.value, activeRange);
+                    const s = flagStatus(m.value, range);
                     return (
                       <tr
                         key={i}

@@ -1,68 +1,51 @@
 import { Line, LineChart, ReferenceArea, ResponsiveContainer, YAxis } from "recharts";
 import type { Marker, ReferenceRange } from "../types";
+import { chartScale } from "../lib/chartScale";
+import { chartPoints, type ChartPoint } from "../lib/chartPoints";
 
 interface Props {
   marker: Marker;
   range: ReferenceRange;
 }
 
+const LINE = "rgb(15 118 110)";
+
+/** Only detection-limit points get a (hollow) dot, so they stand out from real readings. */
+function CensoredDot(props: { cx?: number; cy?: number; payload?: ChartPoint }) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null || !payload?.censored) return null;
+  return <circle cx={cx} cy={cy} r={2.5} fill="white" stroke={LINE} strokeWidth={1.25} />;
+}
+
 export function Sparkline({ marker, range }: Props) {
-  const data = marker.measurements
-    .filter((m) => m.value.kind === "number" || m.value.kind === "operator")
-    .map((m) => ({
-      t: m.date.getTime(),
-      v: m.value.kind === "empty" || m.value.kind === "qualitative" ? null : m.value.numeric,
-    }))
-    .filter((d) => d.v != null);
-
+  const data = chartPoints(marker);
   if (data.length < 2) {
-    return <span className="text-xs text-slate-400">—</span>;
+    return <span className="inline-block w-24 text-center text-xs text-slate-400">—</span>;
   }
 
-  const values = data.map((d) => d.v as number);
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
-  let lo = dataMin;
-  let hi = dataMax;
-  if (range.kind === "between") {
-    lo = Math.min(lo, range.low);
-    hi = Math.max(hi, range.high);
-  } else if (range.kind === "lt" || range.kind === "lte") {
-    hi = Math.max(hi, range.high);
-  } else if (range.kind === "gt" || range.kind === "gte") {
-    lo = Math.min(lo, range.low);
-  }
-  const pad = (hi - lo) * 0.1 || hi * 0.1 || 1;
-  const yMin = lo - pad;
-  const yMax = hi + pad;
+  const { domain } = chartScale(
+    data.map((d) => d.v),
+    [range],
+    3,
+  );
+  const band: [number, number] | null =
+    range.kind === "between"
+      ? [range.low, range.high]
+      : range.kind === "lt" || range.kind === "lte"
+        ? [domain[0], range.high]
+        : range.kind === "gt" || range.kind === "gte"
+          ? [range.low, domain[1]]
+          : null;
 
   return (
-    <div className="h-6 w-24">
+    <div className="h-6 w-24" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-          <YAxis hide domain={[yMin, yMax]} />
-          {range.kind === "between" && (
+        <LineChart data={data} margin={{ top: 3, right: 3, bottom: 3, left: 3 }}>
+          <YAxis hide domain={domain} allowDataOverflow />
+          {band && (
             <ReferenceArea
-              y1={range.low}
-              y2={range.high}
-              fill="rgb(16 185 129)"
-              fillOpacity={0.12}
-              stroke="none"
-            />
-          )}
-          {(range.kind === "lt" || range.kind === "lte") && (
-            <ReferenceArea
-              y1={yMin}
-              y2={range.high}
-              fill="rgb(16 185 129)"
-              fillOpacity={0.12}
-              stroke="none"
-            />
-          )}
-          {(range.kind === "gt" || range.kind === "gte") && (
-            <ReferenceArea
-              y1={range.low}
-              y2={yMax}
+              y1={band[0]}
+              y2={band[1]}
               fill="rgb(16 185 129)"
               fillOpacity={0.12}
               stroke="none"
@@ -71,9 +54,10 @@ export function Sparkline({ marker, range }: Props) {
           <Line
             type="monotone"
             dataKey="v"
-            stroke="rgb(15 118 110)"
+            stroke={LINE}
             strokeWidth={1.5}
-            dot={false}
+            dot={<CensoredDot />}
+            activeDot={false}
             isAnimationActive={false}
           />
         </LineChart>

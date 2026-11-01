@@ -8,37 +8,89 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type TooltipProps,
 } from "recharts";
 import type { Marker, ReferenceRange } from "../types";
 import { formatDateLong, formatDateShort } from "../lib/format";
+import { chartScale, formatTick } from "../lib/chartScale";
+import { chartPoints, type ChartPoint } from "../lib/chartPoints";
 
 interface Props {
   marker: Marker;
   active: ReferenceRange;
   secondary?: ReferenceRange;
+  unit?: string;
 }
 
-interface Point {
-  t: number;
-  v: number;
-  raw: string;
+const LINE = "rgb(15 118 110)";
+const BAND = "rgb(16 185 129)";
+const SECONDARY = "rgb(148 163 184)";
+
+/** Filled dot for a measured value, hollow dot for a detection-limit value. */
+function Dot(props: { cx?: number; cy?: number; payload?: ChartPoint; r?: number }) {
+  const { cx, cy, payload, r = 3.5 } = props;
+  if (cx == null || cy == null || !payload) return null;
+  return payload.censored ? (
+    <circle cx={cx} cy={cy} r={r + 0.5} fill="white" stroke={LINE} strokeWidth={1.5} />
+  ) : (
+    <circle cx={cx} cy={cy} r={r} fill={LINE} />
+  );
 }
 
-function rangeBounds(r: ReferenceRange): { lo?: number; hi?: number } {
-  if (r.kind === "between") return { lo: r.low, hi: r.high };
-  if (r.kind === "lt" || r.kind === "lte") return { hi: r.high };
-  if (r.kind === "gt" || r.kind === "gte") return { lo: r.low };
-  return {};
+function ChartTooltip({ active, payload, unit }: TooltipProps<number, string> & { unit?: string }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload as ChartPoint;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="text-slate-500 dark:text-slate-400">{formatDateLong(new Date(p.t))}</div>
+      <div className="tabnum font-medium text-slate-900 dark:text-slate-100">
+        {p.raw}
+        {unit ? ` ${unit}` : ""}
+      </div>
+      {p.censored && (
+        <div className="mt-0.5 text-slate-500 dark:text-slate-400">
+          {p.censored === "below"
+            ? "Below the lab's detection limit — plotted at the limit"
+            : "Above the lab's measurable limit — plotted at the limit"}
+        </div>
+      )}
+    </div>
+  );
 }
 
-export function TrendChart({ marker, active, secondary }: Props) {
-  const data: Point[] = marker.measurements
-    .filter((m) => m.value.kind === "number" || m.value.kind === "operator")
-    .map((m) => ({
-      t: m.date.getTime(),
-      v: (m.value as { numeric: number }).numeric,
-      raw: m.raw,
-    }));
+function bandFor(range: ReferenceRange, domain: [number, number]): [number, number] | null {
+  switch (range.kind) {
+    case "between":
+      return [range.low, range.high];
+    case "lt":
+    case "lte":
+      return [domain[0], range.high];
+    case "gt":
+    case "gte":
+      return [range.low, domain[1]];
+    default:
+      return null;
+  }
+}
+
+function linesFor(range?: ReferenceRange): number[] {
+  if (!range) return [];
+  switch (range.kind) {
+    case "between":
+      return [range.low, range.high];
+    case "lt":
+    case "lte":
+      return [range.high];
+    case "gt":
+    case "gte":
+      return [range.low];
+    default:
+      return [];
+  }
+}
+
+export function TrendChart({ marker, active, secondary, unit }: Props) {
+  const data = chartPoints(marker);
 
   if (data.length === 0) {
     return (
@@ -48,119 +100,92 @@ export function TrendChart({ marker, active, secondary }: Props) {
     );
   }
 
-  const values = data.map((d) => d.v);
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
-  const aBounds = rangeBounds(active);
-  const sBounds = secondary ? rangeBounds(secondary) : {};
-  const lo = Math.min(dataMin, aBounds.lo ?? dataMin, sBounds.lo ?? dataMin);
-  const hi = Math.max(dataMax, aBounds.hi ?? dataMax, sBounds.hi ?? dataMax);
-  const pad = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1;
+  const { domain, ticks } = chartScale(
+    data.map((d) => d.v),
+    [active, secondary],
+  );
+  const band = bandFor(active, domain);
+  const hasCensored = data.some((d) => d.censored);
 
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 16, bottom: 5, left: 0 }}>
-          <CartesianGrid strokeDasharray="2 3" stroke="rgb(226 232 240)" />
-          <XAxis
-            dataKey="t"
-            type="number"
-            scale="time"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(v) => formatDateShort(new Date(v))}
-            stroke="rgb(148 163 184)"
-            tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
-          />
-          <YAxis
-            domain={[lo - pad, hi + pad]}
-            stroke="rgb(148 163 184)"
-            tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
-            width={48}
-          />
-          {active.kind === "between" && (
-            <ReferenceArea
-              y1={active.low}
-              y2={active.high}
-              fill="rgb(16 185 129)"
-              fillOpacity={0.12}
-              stroke="rgb(167 243 208)"
-              strokeOpacity={0.5}
-              ifOverflow="extendDomain"
+    <div>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 10, right: 16, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="2 3" stroke="rgb(226 232 240)" />
+            <XAxis
+              dataKey="t"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              padding={{ left: 12, right: 12 }}
+              tickFormatter={(v) => formatDateShort(new Date(v))}
+              stroke="rgb(148 163 184)"
+              tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
             />
-          )}
-          {(active.kind === "lt" || active.kind === "lte") && (
-            <ReferenceArea
-              y1={lo - pad}
-              y2={active.high}
-              fill="rgb(16 185 129)"
-              fillOpacity={0.12}
-              stroke="none"
+            <YAxis
+              domain={domain}
+              ticks={ticks}
+              tickFormatter={formatTick}
+              stroke="rgb(148 163 184)"
+              tick={{ fontSize: 11, fill: "rgb(100 116 139)" }}
+              width={44}
+              allowDataOverflow
             />
-          )}
-          {(active.kind === "gt" || active.kind === "gte") && (
-            <ReferenceArea
-              y1={active.low}
-              y2={hi + pad}
-              fill="rgb(16 185 129)"
-              fillOpacity={0.12}
-              stroke="none"
-            />
-          )}
-          {secondary && secondary.kind === "between" && (
-            <>
-              <ReferenceLine
-                y={secondary.low}
-                stroke="rgb(148 163 184)"
-                strokeDasharray="4 3"
-                strokeOpacity={0.6}
-              />
-              <ReferenceLine
-                y={secondary.high}
-                stroke="rgb(148 163 184)"
-                strokeDasharray="4 3"
-                strokeOpacity={0.6}
-              />
-            </>
-          )}
-          {secondary &&
-            (secondary.kind === "lt" || secondary.kind === "lte") && (
-              <ReferenceLine
-                y={secondary.high}
-                stroke="rgb(148 163 184)"
-                strokeDasharray="4 3"
-                strokeOpacity={0.6}
+            {band && (
+              <ReferenceArea
+                y1={band[0]}
+                y2={band[1]}
+                fill={BAND}
+                fillOpacity={0.12}
+                stroke="none"
               />
             )}
-          {secondary &&
-            (secondary.kind === "gt" || secondary.kind === "gte") && (
+            {linesFor(secondary).map((y) => (
               <ReferenceLine
-                y={secondary.low}
-                stroke="rgb(148 163 184)"
+                key={y}
+                y={y}
+                stroke={SECONDARY}
                 strokeDasharray="4 3"
-                strokeOpacity={0.6}
+                strokeOpacity={0.7}
               />
-            )}
-          <Tooltip
-            contentStyle={{
-              fontSize: 12,
-              borderRadius: 8,
-              border: "1px solid rgb(226 232 240)",
-              background: "white",
-            }}
-            labelFormatter={(v) => formatDateLong(new Date(Number(v)))}
-            formatter={(value: number) => [value, "Value"]}
-          />
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke="rgb(15 118 110)"
-            strokeWidth={2}
-            dot={{ r: 3, fill: "rgb(15 118 110)" }}
-            activeDot={{ r: 5 }}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+            ))}
+            <Tooltip content={<ChartTooltip unit={unit} />} />
+            <Line
+              type="monotone"
+              dataKey="v"
+              stroke={LINE}
+              strokeWidth={2}
+              dot={<Dot />}
+              activeDot={<Dot r={5} />}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+        {band && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-4 rounded-sm bg-emerald-500/20" aria-hidden />
+            Active range
+          </span>
+        )}
+        {secondary && linesFor(secondary).length > 0 && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-4 border-t border-dashed border-slate-400" aria-hidden />
+            Other range
+          </span>
+        )}
+        {hasCensored && (
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-teal-700"
+              aria-hidden
+            />
+            Detection limit (true value is beyond it)
+          </span>
+        )}
+      </div>
     </div>
   );
 }

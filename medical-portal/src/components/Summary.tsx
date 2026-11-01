@@ -1,6 +1,7 @@
 import { CalendarRange, CircleAlert, ListChecks, TriangleAlert } from "lucide-react";
 import type { DataSheet, RangeMode } from "../types";
-import { flagStatus } from "../lib/flagStatus";
+import { isNumericRange } from "../lib/parseReferenceRange";
+import { activeRange, isOutOfRange, latestStatus } from "../lib/ranges";
 import { formatDateLong } from "../lib/format";
 
 interface Props {
@@ -15,18 +16,17 @@ export type FilterKey = "outOfRange" | "qualitativeFail" | "all";
 export function Summary({ sheet, mode, filter, onFilter }: Props) {
   let outOfRange = 0;
   let qualitativeFail = 0;
+  let fellBack = 0;
   let latest: Date | null = null;
 
   for (const marker of sheet.markers) {
     const latestMeasurement = marker.measurements[marker.measurements.length - 1];
     if (!latestMeasurement) continue;
     if (!latest || latestMeasurement.date > latest) latest = latestMeasurement.date;
-    const range = mode === "biohacker" ? marker.biohacker : marker.standard;
-    const effectiveRange =
-      range.kind === "none" && mode === "biohacker" ? marker.standard : range;
-    const status = flagStatus(latestMeasurement.value, effectiveRange);
-    if (status === "high" || status === "low") outOfRange++;
+    const status = latestStatus(marker, mode);
+    if (isOutOfRange(status)) outOfRange++;
     if (status === "mismatch") qualitativeFail++;
+    if (activeRange(marker, mode).fellBack && isNumericRange(marker.standard)) fellBack++;
   }
 
   const tiles: {
@@ -50,7 +50,12 @@ export function Summary({ sheet, mode, filter, onFilter }: Props) {
       icon: <CircleAlert className="h-4 w-4" />,
       label: "Out of range",
       value: String(outOfRange),
-      sub: mode === "biohacker" ? "vs Biohacker target" : "vs Standard range",
+      sub:
+        mode === "biohacker"
+          ? fellBack > 0
+            ? `vs Biohacker target · ${fellBack} use Standard (no target)`
+            : "vs Biohacker target"
+          : "vs Standard range",
       selectable: true,
     },
     {
