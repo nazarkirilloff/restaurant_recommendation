@@ -1,0 +1,59 @@
+name: medical-portal
+
+on:
+  push:
+    paths:
+      - "medical-portal/**"
+      - ".github/workflows/medical-portal.yml"
+      - ".gitignore"
+  pull_request:
+    paths:
+      - "medical-portal/**"
+      - ".github/workflows/medical-portal.yml"
+      - ".gitignore"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: medical-portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: medical-portal/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests (UTC)
+        run: npm test
+
+      # Lab dates are calendar days; catch off-by-one-day bugs west and east of UTC.
+      - name: Tests (UTC−8)
+        run: npm test
+        env:
+          TZ: America/Los_Angeles
+
+      - name: Tests (UTC+14)
+        run: npm test
+        env:
+          TZ: Pacific/Kiritimati
+
+      - name: Build single-file HTML
+        run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab-results-portal
+          path: medical-portal/dist/index.html
+          if-no-files-found: error
