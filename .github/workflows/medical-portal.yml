@@ -32,14 +32,6 @@ jobs:
 
       - run: npm ci
 
-      # TEMPORARY: report the SheetJS tarball checksum so it can be pinned in package-lock.json.
-      - name: SheetJS version and checksum
-        run: |
-          node -p "'xlsx ' + require('xlsx').version"
-          curl -fsSL https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz \
-            | openssl dgst -sha512 -binary | base64 -w0 | sed 's/^/sha512-/'
-          echo
-
       - name: Typecheck
         run: npm run typecheck
 
