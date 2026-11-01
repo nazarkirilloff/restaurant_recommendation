@@ -8,7 +8,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { Status } from "../types";
-import { statusLabel, statusTone } from "../lib/flagStatus";
+import { statusTone } from "../lib/flagStatus";
+import { useI18n } from "../i18n/I18n";
 
 const TONE_CLASSES: Record<string, string> = {
   ok: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900",
@@ -47,15 +48,17 @@ export function StatusPill({
   status: Status;
   size?: "sm" | "xs";
 }) {
+  const { t } = useI18n();
   const tone = statusTone(status);
+  const label = t.status[status];
   const sizeCls = size === "xs" ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-0.5 text-xs";
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full font-medium ${sizeCls} ${TONE_CLASSES[tone]}`}
-      aria-label={`Status: ${statusLabel(status)}`}
+      aria-label={t.statusAria(label)}
     >
       <StatusIcon status={status} />
-      <span>{statusLabel(status)}</span>
+      <span>{label}</span>
     </span>
   );
 }

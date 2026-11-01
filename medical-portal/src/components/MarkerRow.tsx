@@ -5,7 +5,8 @@ import { StatusPill } from "./StatusPill";
 import { Sparkline } from "./Sparkline";
 import { TrendChart } from "./TrendChart";
 import { Explanation } from "./Explanation";
-import { flagStatus, statusLabel, statusTone } from "../lib/flagStatus";
+import { flagStatus, statusTone } from "../lib/flagStatus";
+import { useI18n } from "../i18n/I18n";
 import { formatRange, isNumericRange, rangeUnit } from "../lib/parseReferenceRange";
 import { formatDateLong } from "../lib/format";
 import { activeRange } from "../lib/ranges";
@@ -32,12 +33,17 @@ const TREND_TEXT: Record<TrendTone, string> = {
 
 export function MarkerRow({ marker, mode }: Props) {
   const [open, setOpen] = useState(false);
+  const { lang, t } = useI18n();
   const { range, fellBack, other } = activeRange(marker, mode);
+  // In Ukrainian the Ukrainian name leads (when the file has one).
+  const [primaryName, secondaryName] =
+    lang === "uk" && marker.nameUa ? [marker.nameUa, marker.nameEn] : [marker.nameEn, marker.nameUa];
 
   const latest = marker.measurements[marker.measurements.length - 1];
   const previous = marker.measurements[marker.measurements.length - 2];
   const status = latest ? flagStatus(latest.value, range) : "unknown";
   const change = trend(previous, latest, range);
+  const changeText = change ? t.trend(change) : "";
 
   const unit = rangeUnit(range) ?? rangeUnit(marker.standard);
   const canExpand = marker.measurements.length > 0;
@@ -60,11 +66,11 @@ export function MarkerRow({ marker, mode }: Props) {
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              {marker.nameEn}
+              {primaryName}
             </span>
-            {marker.nameUa && (
+            {secondaryName && (
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                {marker.nameUa}
+                {secondaryName}
               </span>
             )}
           </div>
@@ -82,11 +88,11 @@ export function MarkerRow({ marker, mode }: Props) {
           {change && (
             <span
               className={`text-xs tabnum ${TREND_TEXT[change.tone]}`}
-              title={change.description}
+              title={changeText}
             >
               <span aria-hidden>{change.direction === "up" ? "↗" : "↘"} </span>
               {change.amount}
-              <span className="sr-only">. {change.description}</span>
+              <span className="sr-only">. {changeText}</span>
             </span>
           )}
         </div>
@@ -98,7 +104,7 @@ export function MarkerRow({ marker, mode }: Props) {
             </span>
             {fellBack && isNumericRange(range) && (
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                Standard · no biohacker target
+                {t.row.noBiohackerTarget}
               </span>
             )}
           </span>
@@ -119,22 +125,22 @@ export function MarkerRow({ marker, mode }: Props) {
         <div className="border-t border-slate-100 bg-slate-50/40 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/30">
           <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500 dark:text-slate-400">Standard:</span>
+              <span className="text-slate-500 dark:text-slate-400">{t.row.standard}</span>
               <span className="tabnum font-medium">
                 {formatRange(marker.standard)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500 dark:text-slate-400">Biohacker:</span>
+              <span className="text-slate-500 dark:text-slate-400">{t.row.biohacker}</span>
               <span className="tabnum font-medium">
                 {marker.biohacker.kind !== "none"
                   ? formatRange(marker.biohacker)
-                  : "no target"}
+                  : t.row.noTarget}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500 dark:text-slate-400">Latest:</span>
-              <span className="font-medium">{statusLabel(status)}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t.row.latest}</span>
+              <span className="font-medium">{t.status[status]}</span>
             </div>
           </div>
 
@@ -149,9 +155,9 @@ export function MarkerRow({ marker, mode }: Props) {
               <table className="w-full text-xs">
                 <thead className="text-slate-500 dark:text-slate-400">
                   <tr className="border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-2 pr-4 text-left font-medium">Date</th>
-                    <th className="py-2 pr-4 text-right font-medium">Value</th>
-                    <th className="py-2 text-left font-medium">Status</th>
+                    <th className="py-2 pr-4 text-left font-medium">{t.row.date}</th>
+                    <th className="py-2 pr-4 text-right font-medium">{t.row.value}</th>
+                    <th className="py-2 text-left font-medium">{t.row.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -163,7 +169,7 @@ export function MarkerRow({ marker, mode }: Props) {
                         className="border-b border-slate-100 last:border-b-0 dark:border-slate-800/60"
                       >
                         <td className="py-1.5 pr-4 tabnum text-slate-600 dark:text-slate-300">
-                          {formatDateLong(m.date)}
+                          {formatDateLong(m.date, t.locale)}
                         </td>
                         <td className="py-1.5 pr-4 text-right tabnum">{m.raw}</td>
                         <td className="py-1.5">

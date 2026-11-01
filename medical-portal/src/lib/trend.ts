@@ -8,8 +8,8 @@ export interface Trend {
   /** Size of the change, at the precision of the data: "0.002", "0.12", "8". */
   amount: string;
   tone: TrendTone;
-  /** Plain-language description for tooltips and screen readers. */
-  description: string;
+  /** The change moved the result into, or out of, the range. */
+  crossing: "into" | "outOf" | null;
 }
 
 /** Digits after the decimal separator in a cell's text ("1.018" → 3, "5,62" → 2). */
@@ -71,16 +71,11 @@ export function trend(
     tone = db < da ? "better" : db > da ? "worse" : "neutral";
   }
 
-  const verb = direction === "up" ? "Up" : "Down";
-  const toneText =
-    tone === "better"
-      ? db === 0
-        ? " — now within range"
-        : " — moving toward range"
-      : tone === "worse"
-        ? da === 0
-          ? " — now outside range"
-          : " — moving away from range"
-        : "";
-  return { direction, amount, tone, description: `${verb} ${amount} since previous result${toneText}` };
+  const crossing: Trend["crossing"] =
+    da !== null && db !== null && da > 0 && db === 0
+      ? "into"
+      : da !== null && db !== null && da === 0 && db > 0
+        ? "outOf"
+        : null;
+  return { direction, amount, tone, crossing };
 }

@@ -1,5 +1,6 @@
 import type { Marker, Status } from "../types";
 import { getExplanation } from "../data/markerExplanations";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   marker: Marker;
@@ -7,7 +8,8 @@ interface Props {
 }
 
 export function Explanation({ marker, status }: Props) {
-  const explanation = getExplanation(marker.nameEn);
+  const { lang, t } = useI18n();
+  const explanation = getExplanation(marker.nameEn, lang);
   const biohackerNote =
     marker.biohacker.kind !== "none" ? marker.biohacker.note : undefined;
   const standardNote =
@@ -22,7 +24,7 @@ export function Explanation({ marker, status }: Props) {
       {explanation && (
         <p>
           <span className="font-medium text-slate-900 dark:text-slate-100">
-            What it is.
+            {t.explanation.whatItIs}
           </span>{" "}
           {explanation.summary}
         </p>
@@ -30,7 +32,7 @@ export function Explanation({ marker, status }: Props) {
       {explanation?.high && status === "high" && (
         <p className="mt-2">
           <span className="font-medium text-rose-700 dark:text-rose-300">
-            Above range.
+            {t.explanation.aboveRange}
           </span>{" "}
           {explanation.high}
         </p>
@@ -38,7 +40,7 @@ export function Explanation({ marker, status }: Props) {
       {explanation?.low && status === "low" && (
         <p className="mt-2">
           <span className="font-medium text-rose-700 dark:text-rose-300">
-            Below range.
+            {t.explanation.belowRange}
           </span>{" "}
           {explanation.low}
         </p>
@@ -47,13 +49,13 @@ export function Explanation({ marker, status }: Props) {
         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           {standardNote && (
             <span>
-              <span className="font-medium">Standard note:</span> {standardNote}
+              <span className="font-medium">{t.explanation.standardNote}</span> {standardNote}
               {biohackerNote ? " · " : ""}
             </span>
           )}
           {biohackerNote && (
             <span>
-              <span className="font-medium">Biohacker note:</span> {biohackerNote}
+              <span className="font-medium">{t.explanation.biohackerNote}</span> {biohackerNote}
             </span>
           )}
         </p>

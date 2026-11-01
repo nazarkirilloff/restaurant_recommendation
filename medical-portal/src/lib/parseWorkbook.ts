@@ -201,6 +201,7 @@ export function parseWorkbook(wb: XLSX.WorkBook, fileName: string): ParseResult 
   if (data.length === 0) {
     return {
       ok: false,
+      code: "noResultSheets",
       message: "No result sheets found in this file.",
       detail:
         "Expected a header row with a marker-name column (e.g. “Marker EN”) followed by date columns such as 2024-03-11, one row per marker.",

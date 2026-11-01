@@ -16,6 +16,7 @@ import { chartScale, formatTick } from "../lib/chartScale";
 import { chartPoints, type ChartPoint } from "../lib/chartPoints";
 import { chartTheme, type ChartTheme } from "../lib/chartTheme";
 import { useIsDark } from "../hooks/useIsDark";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   marker: Marker;
@@ -42,20 +43,19 @@ function Dot(props: {
 }
 
 function ChartTooltip({ active, payload, unit }: TooltipProps<number, string> & { unit?: string }) {
+  const { t } = useI18n();
   if (!active || !payload?.length) return null;
   const p = payload[0].payload as ChartPoint;
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="text-slate-500 dark:text-slate-400">{formatDateLong(new Date(p.t))}</div>
+      <div className="text-slate-500 dark:text-slate-400">{formatDateLong(new Date(p.t), t.locale)}</div>
       <div className="tabnum font-medium text-slate-900 dark:text-slate-100">
         {p.raw}
         {unit ? ` ${unit}` : ""}
       </div>
       {p.censored && (
         <div className="mt-0.5 text-slate-500 dark:text-slate-400">
-          {p.censored === "below"
-            ? "Below the lab's detection limit — plotted at the limit"
-            : "Above the lab's measurable limit — plotted at the limit"}
+          {p.censored === "below" ? t.chart.belowLimit : t.chart.aboveLimit}
         </div>
       )}
     </div>
@@ -95,12 +95,13 @@ function linesFor(range?: ReferenceRange): number[] {
 
 export function TrendChart({ marker, active, secondary, unit }: Props) {
   const theme = chartTheme(useIsDark());
+  const { t } = useI18n();
   const data = chartPoints(marker);
 
   if (data.length === 0) {
     return (
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-        No numeric measurements to chart.
+        {t.chart.noNumeric}
       </div>
     );
   }
@@ -124,7 +125,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
               scale="time"
               domain={["dataMin", "dataMax"]}
               padding={{ left: 12, right: 12 }}
-              tickFormatter={(v) => formatDateShort(new Date(v))}
+              tickFormatter={(v) => formatDateShort(new Date(v), t.locale)}
               stroke={theme.axis}
               tick={{ fontSize: 11, fill: theme.tick }}
             />
@@ -172,13 +173,13 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
         {band && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-4 rounded-sm bg-emerald-500/20" aria-hidden />
-            Active range
+            {t.chart.activeRange}
           </span>
         )}
         {secondary && linesFor(secondary).length > 0 && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-4 border-t border-dashed border-slate-400" aria-hidden />
-            Other range
+            {t.chart.otherRange}
           </span>
         )}
         {hasCensored && (
@@ -187,7 +188,7 @@ export function TrendChart({ marker, active, secondary, unit }: Props) {
               className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-teal-700 dark:border-teal-400"
               aria-hidden
             />
-            Detection limit (true value is beyond it)
+            {t.chart.detectionLimit}
           </span>
         )}
       </div>

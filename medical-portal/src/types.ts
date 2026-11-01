@@ -88,6 +88,22 @@ export interface ParsedWorkbook {
   info: InfoSheet[];
 }
 
+export type ParseErrorCode =
+  | "unsupportedType"
+  | "tooLarge"
+  | "unreadable"
+  | "numbersUnreadable"
+  | "noResultSheets";
+
 export type ParseResult =
   | { ok: true; workbook: ParsedWorkbook }
-  | { ok: false; message: string; detail?: string };
+  | {
+      ok: false;
+      /** Stable identifier; the UI shows a translated message for it. */
+      code: ParseErrorCode;
+      /** English message (logs, tests). */
+      message: string;
+      detail?: string;
+      /** File extension, for unsupportedType. */
+      ext?: string;
+    };

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import type { InfoSheet } from "../types";
+import { useI18n } from "../i18n/I18n";
 
 export function ReadmePanel({ info }: { info: InfoSheet[] }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   if (info.length === 0 || info.every((s) => s.lines.length === 0)) return null;
 
   return (
@@ -16,7 +18,7 @@ export function ReadmePanel({ info }: { info: InfoSheet[] }) {
       >
         <span className="flex items-center gap-2 text-sm font-medium">
           <Info className="h-4 w-4 text-slate-500" />
-          About this dataset
+          {t.readme.about}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}

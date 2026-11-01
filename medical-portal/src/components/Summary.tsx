@@ -3,6 +3,7 @@ import type { DataSheet, RangeMode } from "../types";
 import { isNumericRange } from "../lib/parseReferenceRange";
 import { activeRange, isOutOfRange, latestStatus } from "../lib/ranges";
 import { formatDateLong } from "../lib/format";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   sheet: DataSheet;
@@ -14,6 +15,7 @@ interface Props {
 export type FilterKey = "outOfRange" | "qualitativeFail" | "all";
 
 export function Summary({ sheet, mode, filter, onFilter }: Props) {
+  const { t } = useI18n();
   let outOfRange = 0;
   let qualitativeFail = 0;
   let fellBack = 0;
@@ -40,37 +42,37 @@ export function Summary({ sheet, mode, filter, onFilter }: Props) {
     {
       key: "all",
       icon: <ListChecks className="h-4 w-4" />,
-      label: "Markers",
+      label: t.summary.markers,
       value: String(sheet.markers.length),
-      sub: `${sheet.dates.length} test ${sheet.dates.length === 1 ? "date" : "dates"}`,
+      sub: t.summary.testDates(sheet.dates.length),
       selectable: true,
     },
     {
       key: "outOfRange",
       icon: <CircleAlert className="h-4 w-4" />,
-      label: "Out of range",
+      label: t.summary.outOfRange,
       value: String(outOfRange),
       sub:
         mode === "biohacker"
           ? fellBack > 0
-            ? `vs Biohacker target · ${fellBack} use Standard (no target)`
-            : "vs Biohacker target"
-          : "vs Standard range",
+            ? `${t.summary.vsBiohacker} · ${t.summary.useStandard(fellBack)}`
+            : t.summary.vsBiohacker
+          : t.summary.vsStandard,
       selectable: true,
     },
     {
       key: "qualitativeFail",
       icon: <TriangleAlert className="h-4 w-4" />,
-      label: "Unexpected",
+      label: t.summary.unexpected,
       value: String(qualitativeFail),
-      sub: "Qualitative results",
+      sub: t.summary.qualitative,
       selectable: true,
     },
     {
       key: "info",
       icon: <CalendarRange className="h-4 w-4" />,
-      label: "Latest test",
-      value: latest ? formatDateLong(latest) : "—",
+      label: t.summary.latestTest,
+      value: latest ? formatDateLong(latest, t.locale) : "—",
       selectable: false,
     },
   ];

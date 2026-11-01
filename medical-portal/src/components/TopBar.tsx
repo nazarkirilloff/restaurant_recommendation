@@ -1,6 +1,8 @@
 import { FileSpreadsheet, Moon, RotateCcw, Sun } from "lucide-react";
 import type { RangeMode } from "../types";
 import { ModeToggle } from "./ModeToggle";
+import { LanguageToggle } from "./LanguageToggle";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   fileName: string;
@@ -21,6 +23,7 @@ export function TopBar({
   theme,
   onThemeToggle,
 }: Props) {
+  const { t } = useI18n();
   return (
     <header className="no-print sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
@@ -33,7 +36,7 @@ export function TopBar({
               {fileName}
             </div>
             <div className="hidden text-xs text-slate-500 dark:text-slate-400 md:block">
-              {measurementCount.toLocaleString()} measurements
+              {t.topBar.measurements(measurementCount)}
             </div>
           </div>
         </div>
@@ -43,10 +46,11 @@ export function TopBar({
         </div>
 
         <div className="flex items-center gap-1">
+          <LanguageToggle />
           <button
             type="button"
             onClick={onThemeToggle}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={theme === "dark" ? t.topBar.toLight : t.topBar.toDark}
             className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -57,7 +61,7 @@ export function TopBar({
             className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">New file</span>
+            <span className="hidden sm:inline">{t.topBar.newFile}</span>
           </button>
         </div>
       </div>

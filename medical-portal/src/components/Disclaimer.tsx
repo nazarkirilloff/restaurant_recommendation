@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { ShieldAlert, X } from "lucide-react";
+import { useI18n } from "../i18n/I18n";
 
 const STORAGE_KEY = "medical-portal:disclaimer-dismissed";
 
 export function Disclaimer() {
+  const { t } = useI18n();
   const [dismissed, setDismissed] = useState(() => {
     try {
       return sessionStorage.getItem(STORAGE_KEY) === "1";
@@ -20,8 +22,7 @@ export function Disclaimer() {
         <p className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
           <span>
-            <span className="font-medium">Educational visualization only.</span> Not
-            medical advice. Reference ranges are illustrative — consult your physician.
+            <span className="font-medium">{t.disclaimer.strong}</span> {t.disclaimer.rest}
           </span>
         </p>
         <button
@@ -34,7 +35,7 @@ export function Disclaimer() {
             }
             setDismissed(true);
           }}
-          aria-label="Dismiss disclaimer"
+          aria-label={t.disclaimer.dismiss}
           className="rounded p-1 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40"
         >
           <X className="h-4 w-4" />

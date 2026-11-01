@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from "react";
 import type { DataSheet } from "../types";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   sheets: DataSheet[];
@@ -16,6 +17,7 @@ export const sheetTabId = (name: string) => `sheet-tab-${name.replace(/\W+/g, "-
  */
 export function SheetTabs({ sheets, active, onChange }: Props) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const { t } = useI18n();
 
   const onKeyDown = (e: KeyboardEvent, index: number) => {
     let next = -1;
@@ -32,7 +34,7 @@ export function SheetTabs({ sheets, active, onChange }: Props) {
   return (
     <div
       role="tablist"
-      aria-label="Result sheets"
+      aria-label={t.tabs.group}
       className="no-print sticky top-14 z-10 -mx-4 overflow-x-auto border-b border-slate-200 bg-slate-50/80 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80"
     >
       <div className="flex min-w-max gap-1">

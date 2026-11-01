@@ -17,6 +17,8 @@ export async function parseFile(file: File): Promise<ParseResult> {
   if (!SPREADSHEET_EXT.has(ext) && ext !== "csv") {
     return {
       ok: false,
+      code: "unsupportedType",
+      ext,
       message: `Unsupported file type${ext ? ` “.${ext}”` : ""}.`,
       detail: "Upload an .xlsx, .numbers or .csv file.",
     };
@@ -24,6 +26,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
   if (file.size > MAX_BYTES) {
     return {
       ok: false,
+      code: "tooLarge",
       message: "This file is too large.",
       detail: "Lab result files are usually well under 20 MB.",
     };
@@ -44,6 +47,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
   } catch (err) {
     return {
       ok: false,
+      code: ext === "numbers" ? "numbersUnreadable" : "unreadable",
       message: "Could not read this file.",
       detail:
         ext === "numbers"

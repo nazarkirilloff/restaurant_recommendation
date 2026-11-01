@@ -1,12 +1,13 @@
 import { markerKey } from "../lib/markerKey";
+import { ENTRIES_UK } from "./markerExplanations.uk";
 
-interface Explanation {
+export interface Explanation {
   summary: string;
   high?: string;
   low?: string;
 }
 
-const ENTRIES: Record<string, Explanation> = {
+const ENTRIES = {
   "total cholesterol": {
     summary:
       "Sum of all cholesterol-carrying particles in the blood. A broad screening number; individual fractions (LDL, HDL, ApoB) tell more.",
@@ -248,8 +249,13 @@ const ENTRIES: Record<string, Explanation> = {
   "ige total": {
     summary: "Total immunoglobulin E. Elevated in allergic disease and parasitic infection.",
   },
-};
+} satisfies Record<string, Explanation>;
 
-export function getExplanation(nameEn: string): Explanation | null {
-  return ENTRIES[markerKey(nameEn)] ?? null;
+export type ExplanationKey = keyof typeof ENTRIES;
+
+/** Plain-language text for a marker, in English or Ukrainian. */
+export function getExplanation(nameEn: string, lang: "en" | "uk" = "en"): Explanation | null {
+  const key = markerKey(nameEn);
+  if (!(key in ENTRIES)) return null;
+  return lang === "uk" ? ENTRIES_UK[key as ExplanationKey] : ENTRIES[key as ExplanationKey];
 }

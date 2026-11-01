@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Marker, RangeMode } from "../types";
 import { MarkerRow } from "./MarkerRow";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   category: string;
@@ -12,6 +13,7 @@ interface Props {
 
 export function CategorySection({ category, markers, mode, outOfRangeCount }: Props) {
   const [open, setOpen] = useState(true);
+  const { t } = useI18n();
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 print-block">
       <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
@@ -20,7 +22,7 @@ export function CategorySection({ category, markers, mode, outOfRangeCount }: Pr
             type="button"
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
-            aria-label={`Toggle ${category}`}
+            aria-label={t.category.toggle(category)}
             className="no-print rounded p-1 text-slate-500 transition-colors hover:bg-slate-200/60 dark:hover:bg-slate-800"
           >
             <ChevronDown
@@ -36,7 +38,7 @@ export function CategorySection({ category, markers, mode, outOfRangeCount }: Pr
         </div>
         {outOfRangeCount > 0 && (
           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-900">
-            {outOfRangeCount} off
+            {t.category.off(outOfRangeCount)}
           </span>
         )}
       </header>

@@ -175,27 +175,6 @@ export function flagStatus(value: CellValue, range: ReferenceRange): Status {
   return "unknown";
 }
 
-export function statusLabel(status: Status): string {
-  switch (status) {
-    case "low":
-      return "Low";
-    case "high":
-      return "High";
-    case "normal":
-      return "In range";
-    case "match":
-      return "As expected";
-    case "mismatch":
-      return "Unexpected";
-    case "borderline":
-      return "Borderline";
-    case "info":
-      return "Info";
-    case "unknown":
-      return "No verdict";
-  }
-}
-
 export function statusTone(status: Status): Tone {
   switch (status) {
     case "normal":

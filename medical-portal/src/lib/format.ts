@@ -1,22 +1,23 @@
-const LONG = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+const cache = new Map<string, Intl.DateTimeFormat>();
 
-const SHORT = new Intl.DateTimeFormat("en-GB", {
-  month: "short",
-  year: "2-digit",
-});
+function formatter(locale: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = locale + JSON.stringify(opts);
+  let f = cache.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, opts);
+    cache.set(key, f);
+  }
+  return f;
+}
 
-/** "19 Jan 2023" */
-export function formatDateLong(d: Date): string {
-  return LONG.format(d);
+/** "19 Jan 2023" (en-GB) · "19 січ. 2023 р." (uk-UA) */
+export function formatDateLong(d: Date, locale = "en-GB"): string {
+  return formatter(locale, { day: "numeric", month: "short", year: "numeric" }).format(d);
 }
 
 /** "Jan 23" — for chart axis ticks. */
-export function formatDateShort(d: Date): string {
-  return SHORT.format(d);
+export function formatDateShort(d: Date, locale = "en-GB"): string {
+  return formatter(locale, { month: "short", year: "2-digit" }).format(d);
 }
 
 /**

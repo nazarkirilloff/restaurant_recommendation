@@ -1,22 +1,22 @@
 import { useCallback, useRef, useState } from "react";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import { parseFile } from "../lib/parseFile";
-import type { ParsedWorkbook } from "../types";
+import type { ParsedWorkbook, ParseResult } from "../types";
+import { useI18n } from "../i18n/I18n";
 
 interface Props {
   onLoaded: (workbook: ParsedWorkbook) => void;
 }
 
-interface ErrorState {
-  message: string;
-  detail?: string;
-}
+type ErrorState = Extract<ParseResult, { ok: false }>;
 
 export function FileUpload({ onLoaded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<ErrorState | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const { t } = useI18n();
+  const shown = error ? t.errors[error.code](error.ext) : null;
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -27,7 +27,7 @@ export function FileUpload({ onLoaded }: Props) {
       if (result.ok) {
         onLoaded(result.workbook);
       } else {
-        setError({ message: result.message, detail: result.detail });
+        setError(result);
       }
     },
     [onLoaded],
@@ -66,16 +66,16 @@ export function FileUpload({ onLoaded }: Props) {
           )}
         </div>
         <h2 className="text-lg font-semibold tracking-tight">
-          {busy ? "Reading your file…" : "Upload your lab results"}
+          {busy ? t.upload.reading : t.upload.title}
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Drag a file here or click to browse.
+          {t.upload.hint}
         </p>
         <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-          Excel (.xlsx), Apple Numbers (.numbers) or CSV
+          {t.upload.formats}
         </p>
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-          Your data stays in your browser. Nothing is uploaded or stored.
+          {t.upload.privacy}
         </p>
         <input
           ref={inputRef}
@@ -91,14 +91,14 @@ export function FileUpload({ onLoaded }: Props) {
         />
       </label>
 
-      {error && (
+      {error && shown && (
         <div
           role="alert"
           className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"
         >
-          <p className="font-medium">{error.message}</p>
-          {error.detail && (
-            <p className="mt-1 text-rose-700 dark:text-rose-300">{error.detail}</p>
+          <p className="font-medium">{shown.message}</p>
+          {(shown.detail ?? error.detail) && (
+            <p className="mt-1 text-rose-700 dark:text-rose-300">{shown.detail ?? error.detail}</p>
           )}
         </div>
       )}

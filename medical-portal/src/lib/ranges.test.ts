@@ -62,16 +62,16 @@ describe("trend", () => {
 
   it("colors by direction relative to the range", () => {
     // Above an upper limit and coming down.
-    expect(trend(meas(6.12), meas(5.84), r("<5.0"))?.tone).toBe("better");
+    expect(trend(meas(6.12), meas(5.84), r("<5.0"))).toMatchObject({ tone: "better", crossing: null });
     // Crossing into range.
     expect(trend(meas(5.2), meas(4.9), r("<5.0"))).toMatchObject({
       tone: "better",
-      description: "Down 0.3 since previous result — now within range",
+      crossing: "into",
     });
     // Leaving the range.
     expect(trend(meas(4.9), meas(5.3), r("<5.0"))).toMatchObject({
       tone: "worse",
-      description: "Up 0.4 since previous result — now outside range",
+      crossing: "outOf",
     });
     // Below a lower limit and going further down.
     expect(trend(meas(60), meas(48), r("≥75"))?.tone).toBe("worse");

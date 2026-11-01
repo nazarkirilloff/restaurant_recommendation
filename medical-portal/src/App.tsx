@@ -8,6 +8,8 @@ import { Summary, type FilterKey } from "./components/Summary";
 import { CategorySection } from "./components/CategorySection";
 import { Footer } from "./components/Footer";
 import { isOutOfRange, latestStatus } from "./lib/ranges";
+import { useI18n } from "./i18n/I18n";
+import { LanguageToggle } from "./components/LanguageToggle";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
 
 function useTheme(): ["light" | "dark", () => void] {
@@ -34,6 +36,7 @@ export default function App() {
   const [activeSheet, setActiveSheet] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey | null>(null);
   const [theme, toggleTheme] = useTheme();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (workbook && !activeSheet && workbook.data[0]) {
@@ -79,12 +82,14 @@ export default function App() {
         <Disclaimer />
         <main className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center gap-8 px-4 py-12">
           <div className="text-center">
+            <div className="mb-4 flex justify-center">
+              <LanguageToggle />
+            </div>
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-              Lab Results Portal
+              {t.app.title}
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 md:text-base">
-              Upload a spreadsheet of blood, urine, or stool results to see what's in
-              range, what's off, and how it's trending over time.
+              {t.app.intro}
             </p>
           </div>
           <FileUpload onLoaded={setWorkbook} />
@@ -149,16 +154,16 @@ export default function App() {
                   aria-live="polite"
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
                 >
-                  Filtered:{" "}
+                  {t.app.filtered}{" "}
                   <span className="font-medium">
-                    {filter === "outOfRange" ? "Out-of-range markers" : "Unexpected results"}
+                    {filter === "outOfRange" ? t.app.filterOutOfRange : t.app.filterUnexpected}
                   </span>
                   <button
                     type="button"
                     onClick={() => setFilter(null)}
                     className="ml-2 text-teal-700 hover:underline dark:text-teal-300"
                   >
-                    Clear
+                    {t.app.clear}
                   </button>
                 </div>
               )}
@@ -166,7 +171,7 @@ export default function App() {
               <div className="space-y-6">
                 {filteredCategories.length === 0 ? (
                   <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                    Nothing matches the current filter.
+                    {t.app.nothingMatches}
                   </div>
                 ) : (
                   filteredCategories.map(({ category, markers, outOfRangeCount }) => (
