@@ -17,6 +17,12 @@ describe("parseReferenceRange", () => {
     ["0–10/HPF", { kind: "between", low: 0, high: 10, unit: "/HPF" }],
     ["4.0–10.0 ×10⁹/L", { kind: "between", low: 4, high: 10, unit: "×10⁹/L" }],
     [">90 mL/min/1.73 m²", { kind: "gt", low: 90, unit: "mL/min/1.73 m²" }],
+    ["до 5,0 ммоль/л", { kind: "lte", high: 5, unit: "ммоль/л" }],
+    ["від 1,0 ммоль/л", { kind: "gte", low: 1, unit: "ммоль/л" }],
+    ["від 3,0 до 5,0 ммоль/л", { kind: "between", low: 3, high: 5, unit: "ммоль/л" }],
+    ["більше 90", { kind: "gt", low: 90 }],
+    ["менше 34 МО/мл", { kind: "lt", high: 34, unit: "МО/мл" }],
+    ["up to 15 mm/h", { kind: "lte", high: 15, unit: "mm/h" }],
   ])("numeric %s", (text, expected) => {
     expect(parseReferenceRange(text)).toMatchObject(expected);
   });

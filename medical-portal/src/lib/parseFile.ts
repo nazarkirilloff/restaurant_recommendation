@@ -3,7 +3,7 @@ import type { ParseResult } from "../types";
 import { parseWorkbook } from "./parseWorkbook";
 
 const MAX_BYTES = 20 * 1024 * 1024;
-const SPREADSHEET_EXT = new Set(["xlsx", "xlsm", "xls"]);
+const SPREADSHEET_EXT = new Set(["xlsx", "xlsm", "xls", "numbers"]);
 
 function extension(name: string): string {
   const i = name.lastIndexOf(".");
@@ -14,18 +14,11 @@ function extension(name: string): string {
 export async function parseFile(file: File): Promise<ParseResult> {
   const ext = extension(file.name);
 
-  if (ext === "numbers") {
-    return {
-      ok: false,
-      message: "Apple Numbers files can't be read directly yet.",
-      detail: "In Numbers choose File → Export To → Excel… (or CSV…), then upload that file.",
-    };
-  }
   if (!SPREADSHEET_EXT.has(ext) && ext !== "csv") {
     return {
       ok: false,
       message: `Unsupported file type${ext ? ` “.${ext}”` : ""}.`,
-      detail: "Upload an .xlsx or .csv file.",
+      detail: "Upload an .xlsx, .numbers or .csv file.",
     };
   }
   if (file.size > MAX_BYTES) {
@@ -39,18 +32,39 @@ export async function parseFile(file: File): Promise<ParseResult> {
   try {
     let wb: XLSX.WorkBook;
     if (ext === "csv") {
-      // Decode as UTF-8 ourselves so Cyrillic names survive; raw keeps every cell as text.
-      const text = await file.text();
-      wb = XLSX.read(text.replace(/^﻿/, ""), { type: "string", raw: true });
+      // Decode ourselves so Cyrillic survives; raw keeps every cell as text.
+      // SheetJS detects "," vs ";" separators.
+      const text = decodeText(new Uint8Array(await file.arrayBuffer()));
+      wb = XLSX.read(text, { type: "string", raw: true });
     } else {
-      wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      // cellNF exposes number formats, so date-formatted header cells are recognized.
+      wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellNF: true });
     }
     return parseWorkbook(wb, file.name);
   } catch (err) {
     return {
       ok: false,
       message: "Could not read this file.",
-      detail: err instanceof Error ? err.message : String(err),
+      detail:
+        ext === "numbers"
+          ? "In Numbers choose File → Export To → Excel…, then upload that file."
+          : err instanceof Error
+            ? err.message
+            : String(err),
     };
   }
+}
+
+/**
+ * CSV bytes → text. UTF-8 when valid; otherwise Windows-1251, which is what
+ * Excel writes for "CSV" on Ukrainian/Russian Windows.
+ */
+export function decodeText(bytes: Uint8Array): string {
+  let text: string;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    text = new TextDecoder("windows-1251").decode(bytes);
+  }
+  return text.replace(/^\uFEFF/, "");
 }

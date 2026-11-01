@@ -72,7 +72,7 @@ export function FileUpload({ onLoaded }: Props) {
           Drag a file here or click to browse.
         </p>
         <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-          Supports .xlsx and .csv · .numbers must be exported first
+          Excel (.xlsx), Apple Numbers (.numbers) or CSV
         </p>
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
           Your data stays in your browser. Nothing is uploaded or stored.

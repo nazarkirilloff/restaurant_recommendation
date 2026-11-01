@@ -17,7 +17,7 @@ npm run build        # → dist/index.html (one self-contained file, ~1 MB)
 ```
 
 Open `dist/index.html` in any browser (double-click works, no server needed) and drop in
-your `.xlsx` or `.csv`. Every CI run also attaches the built file as the
+your `.xlsx`, `.numbers` or `.csv`. Every CI run also attaches the built file as the
 `lab-results-portal` artifact.
 
 For development: `npm run dev`.
@@ -40,10 +40,18 @@ date column holds the results from that day:
   as a note.
 - **Values:** numbers, detection limits (`<9.0`, `>500`), or text (`trace`, `negative`, `A`).
 - Sheets without this layout (e.g. `README`) are shown under "About this dataset".
-- Apple Numbers: export to Excel or CSV first (File → Export To).
+- Apple Numbers files are read directly (multi-table sheets: the first table is used).
+- CSV: comma or semicolon separated, UTF-8 or Windows-1251 (Excel's default "CSV" on Ukrainian Windows).
+- Ukrainian range wording works too: `до 5,0 ммоль/л`, `від 1,0`, `від 3 до 5`.
+- Title rows above the header, section-label rows (`ЛІПІДИ / LIPIDS`), comment columns, and `-` / `N/A` for "not done" are all fine.
 
-`fixtures/sample_lab_results.xlsx` is a complete synthetic example
-(regenerate with `npm run fixture`).
+Test fixtures (synthetic data, regenerate with `npm run fixture`):
+
+- `fixtures/sample_lab_results.xlsx`: the clean master template
+- `fixtures/realistic_lab_results.xlsx`: the same template with real-world mess (see the
+  QUIRKS list in `fixtures/make-realistic.mjs`)
+- `fixtures/realistic_blood_cp1251.csv`: its Blood sheet as Excel's `;` CSV in Windows-1251
+- `fixtures/realistic_urine.numbers`: its Urine sheet as an Apple Numbers file
 
 ## Scripts
 

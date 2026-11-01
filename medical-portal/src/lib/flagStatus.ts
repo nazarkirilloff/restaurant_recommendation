@@ -90,11 +90,24 @@ const NEGATIVE_WORDS = [
 const NORMAL_WORDS = ["normal", "norm", "within range", "within normal limits", "норма"];
 
 // Colors labs commonly report that fall inside "light yellow to yellow".
+// Keys are normalized (lowercase, punctuation → space).
 const COLOR_SYNONYMS: Record<string, string> = {
   straw: "yellow",
   "straw yellow": "yellow",
   "pale yellow": "yellow",
   "light yellow": "yellow",
+  жовтий: "yellow",
+  "світло жовтий": "yellow",
+  "блідо жовтий": "yellow",
+  "солом яно жовтий": "yellow",
+  солом: "yellow",
+};
+
+// Ukrainian results for English expectations, compared after normalization.
+const SAME_AS: Record<string, string> = {
+  прозора: "clear",
+  прозорий: "clear",
+  каламутна: "cloudy",
 };
 
 function isNegative(text: string): boolean {
@@ -104,8 +117,8 @@ function isNegative(text: string): boolean {
 
 /** Does a qualitative result agree with the expected qualitative reference? */
 export function matchesExpected(valueText: string, expectedText: string): boolean {
-  const v = norm(valueText);
-  const e = norm(expectedText);
+  const v = SAME_AS[norm(valueText)] ?? norm(valueText);
+  const e = SAME_AS[norm(expectedText)] ?? norm(expectedText);
   if (!v || !e) return false;
   if (v === e) return true;
 

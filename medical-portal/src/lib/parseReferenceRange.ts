@@ -5,6 +5,25 @@ const NUM = String.raw`[+-]?\d+(?:[.,]\d+)?`;
 const OP_RE = new RegExp(String.raw`^(<=|>=|<|>|≤|≥)\s*(${NUM})\s*(.*)$`);
 const BETWEEN_RE = new RegExp(String.raw`^(${NUM})\s*(?:–|—|-|to)\s*(${NUM})\s*(.*)$`, "i");
 
+// Word forms used on Ukrainian (and some English) lab reports.
+// \b doesn't work for Cyrillic, so require whitespace or a digit after the word.
+const AFTER = String.raw`(?:\s+|(?=[+-]?\d))`;
+const WORD_OPS: [RegExp, string][] = [
+  [new RegExp(String.raw`^(?:від|from)${AFTER}(${NUM})\s*(?:до|to)${AFTER}(${NUM})`, "i"), "$1–$2"],
+  [new RegExp(String.raw`^(?:до|не більше|up to|max\.?)${AFTER}`, "i"), "≤"],
+  [new RegExp(String.raw`^(?:від|не менше|min\.?)${AFTER}`, "i"), "≥"],
+  [new RegExp(String.raw`^(?:більше|понад|вище|above|over)${AFTER}`, "i"), ">"],
+  [new RegExp(String.raw`^(?:менше|нижче|below|under)${AFTER}`, "i"), "<"],
+];
+
+/** "до 5,0 ммоль/л" → "≤5,0 ммоль/л"; "від 3 до 5" → "3–5". */
+function wordsToSymbols(body: string): string {
+  for (const [re, replacement] of WORD_OPS) {
+    if (re.test(body)) return body.replace(re, replacement);
+  }
+  return body;
+}
+
 /** Splits "<5.0 mmol/L (men) (fasting)" into body "<5.0 mmol/L" and note "men; fasting". */
 function splitNotes(raw: string): { body: string; note?: string } {
   const notes: string[] = [];
@@ -34,7 +53,7 @@ export function parseReferenceRange(input: unknown): ReferenceRange {
 
   if (/constant/i.test(body)) return { kind: "constant", note, raw };
 
-  let m = OP_RE.exec(body);
+  let m = OP_RE.exec(wordsToSymbols(body));
   if (m) {
     const value = toNumber(m[2]);
     const unit = m[3].trim() || undefined;
@@ -51,7 +70,7 @@ export function parseReferenceRange(input: unknown): ReferenceRange {
     }
   }
 
-  m = BETWEEN_RE.exec(body);
+  m = BETWEEN_RE.exec(wordsToSymbols(body));
   if (m) {
     let low = toNumber(m[1]);
     let high = toNumber(m[2]);

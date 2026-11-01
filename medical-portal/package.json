@@ -10,7 +10,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "fixture": "node fixtures/make-sample.mjs",
+    "fixture": "node fixtures/make-sample.mjs && node fixtures/make-realistic.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

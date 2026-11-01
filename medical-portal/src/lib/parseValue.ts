@@ -7,6 +7,9 @@ const NUMBER_RE = new RegExp(String.raw`^(${NUM})$`);
 // brackets after the number ("2–3 per HPF", "0.5 mmol/L (+)") stays qualitative.
 const NUMBER_WITH_UNIT_RE = new RegExp(String.raw`^(${NUM})\s*([^\d()]+)$`);
 
+// Placeholders labs and people use for "not measured".
+const NOT_DONE = /^(?:-+|—|–|n\/?a|не проводилось|не досліджувалось|не визначалось)$/i;
+
 export function toNumber(text: string): number {
   return Number(text.replace(",", "."));
 }
@@ -23,11 +26,13 @@ export function parseValue(cell: unknown): CellValue {
 
   if (typeof cell === "number") {
     if (!Number.isFinite(cell)) return { kind: "empty" };
-    return { kind: "number", numeric: cell, text: String(cell) };
+    // Drop binary noise (4.859999999999999 → 4.86) so it can't tip a comparison.
+    const clean = Number(cell.toPrecision(12));
+    return { kind: "number", numeric: clean, text: String(clean) };
   }
 
-  const text = String(cell).trim();
-  if (text === "") return { kind: "empty" };
+  const text = String(cell).replace(/\s+/g, " ").trim();
+  if (text === "" || NOT_DONE.test(text)) return { kind: "empty" };
 
   let m = OPERATOR_RE.exec(text);
   if (m) {
