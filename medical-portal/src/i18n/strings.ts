@@ -134,6 +134,15 @@ const en = {
     biohackerNote: "Biohacker note:",
   },
   readme: { about: "About this dataset" },
+  search: {
+    label: "Search markers",
+    placeholder: "Search markers (English or Ukrainian)…",
+    shortcut: "Press / to search",
+    clear: "Clear search",
+    results: (n: number) =>
+      n === 0 ? "No markers match" : `${n} ${plural("en", n, { one: "marker", many: "markers" })}`,
+    alsoIn: "Also in:",
+  },
   footer: {
     privacy: "Your data stays in your browser. Nothing is uploaded or stored.",
     version: "Lab Results Portal · v0.1",
@@ -265,6 +274,17 @@ const uk: Strings = {
     biohackerNote: "Примітка біохакера:",
   },
   readme: { about: "Про ці дані" },
+  search: {
+    label: "Пошук показників",
+    placeholder: "Пошук показників (українською чи англійською)…",
+    shortcut: "Натисніть / для пошуку",
+    clear: "Очистити пошук",
+    results: (n: number) =>
+      n === 0
+        ? "Нічого не знайдено"
+        : `${n} ${plural("uk", n, { one: "показник", few: "показники", many: "показників" })}`,
+    alsoIn: "Також у:",
+  },
   footer: {
     privacy: "Дані залишаються у вашому браузері. Нічого не завантажується і не зберігається.",
     version: "Портал результатів аналізів · v0.1",

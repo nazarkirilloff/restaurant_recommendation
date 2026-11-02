@@ -8,6 +8,8 @@ import { Summary, type FilterKey } from "./components/Summary";
 import { CategorySection } from "./components/CategorySection";
 import { Footer } from "./components/Footer";
 import { isOutOfRange, latestStatus } from "./lib/ranges";
+import { matchesQuery, searchByCategory } from "./lib/search";
+import { SearchBox } from "./components/SearchBox";
 import { useI18n } from "./i18n/I18n";
 import { LanguageToggle } from "./components/LanguageToggle";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
@@ -35,6 +37,7 @@ export default function App() {
   const [mode, setMode] = useState<RangeMode>("standard");
   const [activeSheet, setActiveSheet] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey | null>(null);
+  const [query, setQuery] = useState("");
   const [theme, toggleTheme] = useTheme();
   const { t } = useI18n();
 
@@ -55,13 +58,20 @@ export default function App() {
   const currentSheet =
     workbook?.data.find((s) => s.name === activeSheet) ?? workbook?.data[0];
 
+  // Whether the query should also match category names (see searchByCategory).
+  const byCategory = useMemo(
+    () => !!workbook && searchByCategory(workbook.data.flatMap((s) => s.markers), query),
+    [workbook, query],
+  );
+
   const filteredCategories = useMemo(() => {
     if (!currentSheet) return [];
     const out: { category: string; markers: Marker[]; outOfRangeCount: number }[] = [];
     for (const category of currentSheet.categories) {
       const inCat = currentSheet.markers.filter((m) => m.category === category);
       const decorated = inCat.map((m) => ({ m, status: latestStatus(m, mode) }));
-      const visible = decorated.filter(({ status }) => {
+      const visible = decorated.filter(({ m, status }) => {
+        if (!matchesQuery(m, query, byCategory)) return false;
         if (filter === "outOfRange") return isOutOfRange(status);
         if (filter === "qualitativeFail") return status === "mismatch";
         return true;
@@ -74,7 +84,19 @@ export default function App() {
       });
     }
     return out;
-  }, [currentSheet, filter, mode]);
+  }, [currentSheet, filter, mode, query, byCategory]);
+
+  const matchCount = filteredCategories.reduce((n, c) => n + c.markers.length, 0);
+  const matchesElsewhere = useMemo(() => {
+    if (!workbook || !currentSheet || query.trim() === "") return [];
+    return workbook.data
+      .filter((s) => s.name !== currentSheet.name)
+      .map((s) => ({
+        sheet: s.name,
+        count: s.markers.filter((m) => matchesQuery(m, query, byCategory)).length,
+      }))
+      .filter((x) => x.count > 0);
+  }, [workbook, currentSheet, query, byCategory]);
 
   if (!workbook) {
     return (
@@ -111,6 +133,7 @@ export default function App() {
           setWorkbook(null);
           setActiveSheet(null);
           setFilter(null);
+          setQuery("");
         }}
         theme={theme}
         onThemeToggle={toggleTheme}
@@ -147,6 +170,17 @@ export default function App() {
                 mode={mode}
                 filter={filter}
                 onFilter={setFilter}
+              />
+
+              <SearchBox
+                value={query}
+                onChange={setQuery}
+                count={matchCount}
+                elsewhere={matchesElsewhere}
+                onJump={(name) => {
+                  setActiveSheet(name);
+                  setFilter(null);
+                }}
               />
 
               {filter && (
