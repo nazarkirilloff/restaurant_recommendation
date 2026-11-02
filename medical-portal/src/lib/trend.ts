@@ -18,6 +18,12 @@ export function decimalsOf(text: string): number {
   return m ? m[1].length : 0;
 }
 
+/** The number as displayed ("5,62" → 5.62); falls back to the value when the text has units. */
+function shown(m: Measurement, value: number): number {
+  const t = m.raw.trim();
+  return /^[+-]?\d+(?:[.,]\d+)?$/.test(t) ? Number(t.replace(",", ".")) : value;
+}
+
 /** How far a value sits outside the range (0 = inside). */
 export function distanceFromRange(v: number, range: ReferenceRange): number | null {
   switch (range.kind) {
@@ -51,7 +57,9 @@ export function trend(
   const a = previous.value.numeric;
   const b = latest.value.numeric;
   const decimals = Math.max(decimalsOf(previous.raw), decimalsOf(latest.raw));
-  const diff = Number((b - a).toFixed(decimals));
+  // The size of the change is computed from the numbers as displayed, so it
+  // adds up on screen (95 → 85 is "10", even if the exact values differ by 9.3).
+  const diff = Number((shown(latest, b) - shown(previous, a)).toFixed(decimals));
   if (diff === 0) return null;
 
   const direction = diff > 0 ? "up" : "down";

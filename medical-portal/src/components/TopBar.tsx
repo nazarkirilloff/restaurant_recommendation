@@ -2,6 +2,8 @@ import { FileSpreadsheet, FileText, Moon, RotateCcw, Sun } from "lucide-react";
 import type { RangeMode } from "../types";
 import { ModeToggle } from "./ModeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+import { UnitToggle } from "./UnitToggle";
+import type { UnitSystem } from "../lib/units";
 import { useI18n } from "../i18n/I18n";
 
 interface Props {
@@ -13,6 +15,8 @@ interface Props {
   theme: "light" | "dark";
   onThemeToggle: () => void;
   onReport: () => void;
+  units: UnitSystem;
+  onUnitsChange: (u: UnitSystem) => void;
 }
 
 export function TopBar({
@@ -24,6 +28,8 @@ export function TopBar({
   theme,
   onThemeToggle,
   onReport,
+  units,
+  onUnitsChange,
 }: Props) {
   const { t } = useI18n();
   return (
@@ -43,8 +49,9 @@ export function TopBar({
           </div>
         </div>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-2 md:flex">
           <ModeToggle mode={mode} onChange={onModeChange} />
+          <UnitToggle units={units} onChange={onUnitsChange} />
         </div>
 
         <div className="flex items-center gap-1">
@@ -77,8 +84,9 @@ export function TopBar({
           </button>
         </div>
       </div>
-      <div className="border-t border-slate-200 px-4 py-2 md:hidden dark:border-slate-800">
+      <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-2 md:hidden dark:border-slate-800">
         <ModeToggle mode={mode} onChange={onModeChange} />
+        <UnitToggle units={units} onChange={onUnitsChange} />
       </div>
     </header>
   );

@@ -71,6 +71,13 @@ const en = {
     biohacker: "Biohacker",
   },
   tabs: { group: "Result sheets" },
+  units: {
+    group: "Units",
+    si: "SI",
+    us: "US",
+    siTitle: "SI units, as in your file (mmol/L, µmol/L)",
+    usTitle: "US conventional units (mg/dL, ng/mL)",
+  },
   summary: {
     markers: "Markers",
     testDates: (n: number) => `${n} test ${plural("en", n, { one: "date", many: "dates" })}`,
@@ -238,6 +245,13 @@ const uk: Strings = {
     biohacker: "Біохакер",
   },
   tabs: { group: "Аркуші з результатами" },
+  units: {
+    group: "Одиниці",
+    si: "SI",
+    us: "US",
+    siTitle: "Одиниці SI, як у файлі (ммоль/л, мкмоль/л)",
+    usTitle: "Американські одиниці (мг/дл, нг/мл)",
+  },
   summary: {
     markers: "Показники",
     testDates: (n: number) => `${n} ${plural("uk", n, { one: "дата", few: "дати", many: "дат" })} аналізів`,

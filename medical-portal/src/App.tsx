@@ -11,6 +11,7 @@ import { isOutOfRange, latestStatus } from "./lib/ranges";
 import { matchesQuery, searchByCategory } from "./lib/search";
 import { SearchBox } from "./components/SearchBox";
 import { Report } from "./components/Report";
+import { convertWorkbook, type UnitSystem } from "./lib/units";
 import { useI18n } from "./i18n/I18n";
 import { LanguageToggle } from "./components/LanguageToggle";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
@@ -33,8 +34,37 @@ function useTheme(): ["light" | "dark", () => void] {
   return [theme, () => setTheme((t) => (t === "dark" ? "light" : "dark"))];
 }
 
+const UNITS_KEY = "medical-portal:units";
+
+function useUnits(): [UnitSystem, (u: UnitSystem) => void] {
+  const [units, setUnits] = useState<UnitSystem>(() => {
+    try {
+      return localStorage.getItem(UNITS_KEY) === "us" ? "us" : "si";
+    } catch {
+      return "si";
+    }
+  });
+  return [
+    units,
+    (u) => {
+      setUnits(u);
+      try {
+        localStorage.setItem(UNITS_KEY, u);
+      } catch {
+        /* storage unavailable: lasts for this visit */
+      }
+    },
+  ];
+}
+
 export default function App() {
-  const [workbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
+  const [fileWorkbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
+  const [units, setUnits] = useUnits();
+  // Everything below works on the workbook in the chosen units.
+  const workbook = useMemo(
+    () => (fileWorkbook ? convertWorkbook(fileWorkbook, units) : null),
+    [fileWorkbook, units],
+  );
   const [mode, setMode] = useState<RangeMode>("standard");
   const [activeSheet, setActiveSheet] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey | null>(null);
@@ -145,6 +175,8 @@ export default function App() {
         theme={theme}
         onThemeToggle={toggleTheme}
         onReport={() => setView("report")}
+        units={units}
+        onUnitsChange={setUnits}
       />
 
       <main className="mx-auto max-w-6xl px-4 py-6">
