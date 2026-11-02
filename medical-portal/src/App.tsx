@@ -12,6 +12,7 @@ import { matchesQuery, searchByCategory } from "./lib/search";
 import { SearchBox } from "./components/SearchBox";
 import { Report } from "./components/Report";
 import { convertWorkbook, type UnitSystem } from "./lib/units";
+import { useDeviceMemory } from "./hooks/useDeviceMemory";
 import { useI18n } from "./i18n/I18n";
 import { LanguageToggle } from "./components/LanguageToggle";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
@@ -60,6 +61,7 @@ function useUnits(): [UnitSystem, (u: UnitSystem) => void] {
 export default function App() {
   const [fileWorkbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
   const [units, setUnits] = useUnits();
+  const memory = useDeviceMemory();
   // Everything below works on the workbook in the chosen units.
   const workbook = useMemo(
     () => (fileWorkbook ? convertWorkbook(fileWorkbook, units) : null),
@@ -146,9 +148,9 @@ export default function App() {
               {t.app.intro}
             </p>
           </div>
-          <FileUpload onLoaded={setWorkbook} />
+          <FileUpload onLoaded={setWorkbook} memory={memory} />
         </main>
-        <Footer />
+        <Footer remembered={memory.remember && !!memory.saved} />
       </div>
     );
   }
@@ -263,7 +265,7 @@ export default function App() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer remembered={memory.remember && !!memory.saved} />
     </div>
   );
 }

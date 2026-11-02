@@ -36,6 +36,16 @@ const en = {
     hint: "Drag a file here or click to browse.",
     formats: "Excel (.xlsx), Apple Numbers (.numbers) or CSV",
     privacy: "Your data stays in your browser. Nothing is uploaded or stored.",
+    privacyRemembered:
+      "Your data stays in your browser. Nothing is uploaded; your last file is kept on this device because you chose to.",
+  },
+  remember: {
+    optIn: "Remember my last file on this device",
+    help: "Kept only in this browser so you can reopen it later. Never uploaded. Off by default.",
+    reopen: (name: string) => `Reopen ${name}`,
+    saved: (date: string) => `Saved on this device · ${date}`,
+    forget: "Forget it",
+    forgetTitle: "Delete the saved copy from this device",
   },
   errors: {
     unsupportedType: (ext?: string) => ({
@@ -210,6 +220,16 @@ const uk: Strings = {
     hint: "Перетягніть файл сюди або натисніть, щоб вибрати.",
     formats: "Excel (.xlsx), Apple Numbers (.numbers) або CSV",
     privacy: "Дані залишаються у вашому браузері. Нічого не завантажується і не зберігається.",
+    privacyRemembered:
+      "Дані залишаються у вашому браузері. Нічого не завантажується; останній файл зберігається на цьому пристрої, бо ви так обрали.",
+  },
+  remember: {
+    optIn: "Запам'ятати останній файл на цьому пристрої",
+    help: "Зберігається лише в цьому браузері, щоб ви могли відкрити його знову. Ніколи не завантажується. За замовчуванням вимкнено.",
+    reopen: (name: string) => `Відкрити знову ${name}`,
+    saved: (date: string) => `Збережено на цьому пристрої · ${date}`,
+    forget: "Забути",
+    forgetTitle: "Видалити збережену копію з цього пристрою",
   },
   errors: {
     unsupportedType: (ext?: string) => ({

@@ -4,8 +4,25 @@ A one-page dashboard for blood, urine and stool test results. Upload a spreadshe
 what is in range, what is off, and how each marker trends over time — against standard
 medical ranges or tighter "biohacker" (Attia / Outlive) targets.
 
-**Privacy:** the file is read inside your browser. Nothing is uploaded, stored, or sent
-anywhere; reloading the page clears it. The built page makes no network requests.
+**Privacy:** the file is read inside your browser. Nothing is uploaded or sent anywhere,
+and the built page makes no network requests. By default nothing is stored either —
+reloading clears it. An opt-in "Remember my last file on this device" keeps a copy in this
+browser only (IndexedDB) so you can reopen it; "Forget it", or turning the option off,
+deletes it.
+
+## Features
+
+- Tabs per sheet (Blood / Urine / Stool), categories in file order, status pill per marker
+- **Standard ⇄ Biohacker** ranges; markers without a biohacker target are judged by the
+  standard range and labelled so
+- **SI ⇄ US units** (mmol/L ↔ mg/dL etc.) for 22 common markers; statuses never change
+- Trend arrows colored by direction relative to the range; charts with the active range
+  band, the other range as dashed lines, hollow dots for detection-limit values (`<9.0`)
+- **Search** by English or Ukrainian name (`/` to focus, Esc to clear)
+- **Doctor report**: what needs attention, what came back into range, previous values
+  and changes — print or save as PDF (A4)
+- **English / Українська** interface, including explanations; dark mode; keyboard
+  accessible
 
 > Educational visualization only — not medical advice.
 
@@ -59,12 +76,20 @@ Test fixtures (synthetic data, regenerate with `npm run fixture`):
 |---|---|
 | `npm run dev` | Dev server |
 | `npm run build` | Typecheck + single-file build to `dist/index.html` |
-| `npm test` | Parser and flagging unit tests (Vitest) |
+| `npm test` | Unit and fixture tests (Vitest) |
 | `npm run typecheck` | TypeScript only |
 | `npm run fixture` | Rebuild the sample workbook |
 
 ## Layout
 
-- `src/lib/` — file parsing, reference-range parsing, status flagging (no React)
+- `src/lib/` — parsing, ranges, flagging, trends, units, search, report (no React; tested)
 - `src/components/` — UI
-- `src/data/markerExplanations.ts` — plain-language marker descriptions
+- `src/i18n/strings.ts` — all interface text, English and Ukrainian (typed: a missing
+  translation fails the build)
+- `src/data/markerExplanations*.ts` — plain-language marker descriptions (EN, UK)
+
+## Dependencies
+
+SheetJS (`xlsx`) is installed from the official SheetJS CDN (0.20.3, checksum pinned in
+`package-lock.json`), because the npm registry copy (0.18.5) has known security issues.
+`npm install` therefore needs access to `cdn.sheetjs.com`.
