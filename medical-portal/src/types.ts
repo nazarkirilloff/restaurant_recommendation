@@ -36,6 +36,8 @@ export type ReferenceRange =
     }
   | {
       kind: "none";
+      /** e.g. "past infection — immunity" from "N/A (past infection — immunity)". */
+      note?: string;
       raw: string;
     };
 

@@ -1,4 +1,4 @@
-import { FileSpreadsheet, Moon, RotateCcw, Sun } from "lucide-react";
+import { FileSpreadsheet, FileText, Moon, RotateCcw, Sun } from "lucide-react";
 import type { RangeMode } from "../types";
 import { ModeToggle } from "./ModeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -12,6 +12,7 @@ interface Props {
   onReset: () => void;
   theme: "light" | "dark";
   onThemeToggle: () => void;
+  onReport: () => void;
 }
 
 export function TopBar({
@@ -22,6 +23,7 @@ export function TopBar({
   onReset,
   theme,
   onThemeToggle,
+  onReport,
 }: Props) {
   const { t } = useI18n();
   return (
@@ -47,6 +49,16 @@ export function TopBar({
 
         <div className="flex items-center gap-1">
           <LanguageToggle />
+          <button
+            type="button"
+            onClick={onReport}
+            title={t.report.openTitle}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <FileText className="h-3.5 w-3.5" aria-hidden />
+            <span className="hidden sm:inline">{t.report.open}</span>
+            <span className="sr-only sm:hidden">{t.report.openTitle}</span>
+          </button>
           <button
             type="button"
             onClick={onThemeToggle}

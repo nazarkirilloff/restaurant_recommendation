@@ -46,7 +46,7 @@ function splitNotes(raw: string): { body: string; note?: string } {
 export function parseReferenceRange(input: unknown): ReferenceRange {
   const raw = input == null ? "" : String(input).trim();
   if (raw === "" || /^n\/?a\b/i.test(raw) || raw === "—" || raw === "-") {
-    return { kind: "none", raw };
+    return { kind: "none", note: splitNotes(raw).note, raw };
   }
 
   const { body, note } = splitNotes(raw);

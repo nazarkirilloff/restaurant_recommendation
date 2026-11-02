@@ -22,9 +22,19 @@
   }
 }
 
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
 @media print {
   .no-print {
     display: none !important;
+  }
+  /* Keep the status pills' colors when printing / saving as PDF. */
+  .report {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   body {
     background: white !important;

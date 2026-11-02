@@ -143,6 +143,33 @@ const en = {
       n === 0 ? "No markers match" : `${n} ${plural("en", n, { one: "marker", many: "markers" })}`,
     alsoIn: "Also in:",
   },
+  report: {
+    open: "Report",
+    openTitle: "Doctor report — print or save as PDF",
+    title: "Lab results summary",
+    file: "File",
+    prepared: "Prepared",
+    ranges: "Judged against",
+    latestTest: "Latest test",
+    attention: "Needs attention",
+    backInRange: "Back in range since the previous test",
+    noAttention: "Nothing out of range or unexpected in the latest results.",
+    okCount: (n: number) =>
+      `${n} other ${plural("en", n, { one: "marker is", many: "markers are" })} within range.`,
+    otherCount: (n: number) =>
+      `${n} ${plural("en", n, { one: "marker has", many: "markers have" })} no range to judge against (informational).`,
+    marker: "Marker",
+    latest: "Latest",
+    previous: "Previous",
+    change: "Change",
+    range: "Range",
+    status: "Status",
+    fallback: "standard range (no biohacker target)",
+    back: "Back to dashboard",
+    print: "Print / save as PDF",
+    disclaimer:
+      "Prepared from the patient's own spreadsheet with Lab Results Portal. An educational summary, not a diagnosis; reference ranges are those given in the file.",
+  },
   footer: {
     privacy: "Your data stays in your browser. Nothing is uploaded or stored.",
     version: "Lab Results Portal · v0.1",
@@ -284,6 +311,33 @@ const uk: Strings = {
         ? "Нічого не знайдено"
         : `${n} ${plural("uk", n, { one: "показник", few: "показники", many: "показників" })}`,
     alsoIn: "Також у:",
+  },
+  report: {
+    open: "Звіт",
+    openTitle: "Звіт для лікаря — друк або збереження в PDF",
+    title: "Підсумок результатів аналізів",
+    file: "Файл",
+    prepared: "Складено",
+    ranges: "Оцінено за",
+    latestTest: "Останній аналіз",
+    attention: "Потребує уваги",
+    backInRange: "Повернулися в норму з попереднього аналізу",
+    noAttention: "В останніх результатах немає показників поза нормою чи неочікуваних.",
+    okCount: (n: number) =>
+      `Ще ${n} ${plural("uk", n, { one: "показник", few: "показники", many: "показників" })} у нормі.`,
+    otherCount: (n: number) =>
+      `${n} ${plural("uk", n, { one: "показник не має", few: "показники не мають", many: "показників не мають" })} діапазону для оцінки (довідково).`,
+    marker: "Показник",
+    latest: "Останній",
+    previous: "Попередній",
+    change: "Зміна",
+    range: "Діапазон",
+    status: "Статус",
+    fallback: "медична норма (цілі біохакера немає)",
+    back: "До панелі",
+    print: "Друк / зберегти в PDF",
+    disclaimer:
+      "Складено з власної таблиці пацієнта за допомогою Порталу результатів аналізів. Ознайомчий підсумок, не діагноз; референтні діапазони взято з файлу.",
   },
   footer: {
     privacy: "Дані залишаються у вашому браузері. Нічого не завантажується і не зберігається.",

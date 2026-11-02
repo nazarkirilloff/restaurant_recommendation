@@ -10,10 +10,8 @@ interface Props {
 export function Explanation({ marker, status }: Props) {
   const { lang, t } = useI18n();
   const explanation = getExplanation(marker.nameEn, lang);
-  const biohackerNote =
-    marker.biohacker.kind !== "none" ? marker.biohacker.note : undefined;
-  const standardNote =
-    marker.standard.kind !== "none" ? marker.standard.note : undefined;
+  const biohackerNote = marker.biohacker.note;
+  const standardNote = marker.standard.note;
 
   if (!explanation && !biohackerNote && !standardNote) {
     return null;

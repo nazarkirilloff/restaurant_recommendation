@@ -54,7 +54,7 @@ export function StatusPill({
   const sizeCls = size === "xs" ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-0.5 text-xs";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-medium ${sizeCls} ${TONE_CLASSES[tone]}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full font-medium ${sizeCls} ${TONE_CLASSES[tone]}`}
       aria-label={t.statusAria(label)}
     >
       <StatusIcon status={status} />

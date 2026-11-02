@@ -10,6 +10,7 @@ import { Footer } from "./components/Footer";
 import { isOutOfRange, latestStatus } from "./lib/ranges";
 import { matchesQuery, searchByCategory } from "./lib/search";
 import { SearchBox } from "./components/SearchBox";
+import { Report } from "./components/Report";
 import { useI18n } from "./i18n/I18n";
 import { LanguageToggle } from "./components/LanguageToggle";
 import type { Marker, ParsedWorkbook, RangeMode } from "./types";
@@ -38,6 +39,7 @@ export default function App() {
   const [activeSheet, setActiveSheet] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey | null>(null);
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<"dashboard" | "report">("dashboard");
   const [theme, toggleTheme] = useTheme();
   const { t } = useI18n();
 
@@ -121,6 +123,10 @@ export default function App() {
     );
   }
 
+  if (view === "report") {
+    return <Report workbook={workbook} mode={mode} onBack={() => setView("dashboard")} />;
+  }
+
   return (
     <div className="min-h-screen">
       <Disclaimer />
@@ -134,9 +140,11 @@ export default function App() {
           setActiveSheet(null);
           setFilter(null);
           setQuery("");
+          setView("dashboard");
         }}
         theme={theme}
         onThemeToggle={toggleTheme}
+        onReport={() => setView("report")}
       />
 
       <main className="mx-auto max-w-6xl px-4 py-6">

@@ -68,7 +68,10 @@ describe("parseReferenceRange", () => {
 
   it("recognizes constants and missing targets", () => {
     expect(parseReferenceRange("Constant per individual").kind).toBe("constant");
-    expect(parseReferenceRange("N/A (must be negative)").kind).toBe("none");
+    expect(parseReferenceRange("N/A (must be negative)")).toMatchObject({
+      kind: "none",
+      note: "must be negative",
+    });
     expect(parseReferenceRange("N/A").kind).toBe("none");
     expect(parseReferenceRange("").kind).toBe("none");
     expect(parseReferenceRange(null).kind).toBe("none");
