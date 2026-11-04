@@ -19,6 +19,19 @@ left by an earlier version is deleted on startup.
 
 > Educational visualization only — not medical advice.
 
+### Enforced, not just promised
+
+- The built page carries a strict **Content-Security-Policy**: no network connections of
+  any kind (`connect-src 'none'`), no external scripts, images, fonts, frames or forms,
+  scripts allowed only by hash, and **Trusted Types**, so even injected code can't send
+  your data anywhere or inject HTML.
+- Files are parsed in a **Web Worker** with a 30-second timeout and size limits (50 sheets,
+  5,000 rows, 300 columns), so a malicious or huge file can't freeze the page.
+- `npm run build` fails if the page loses its CSP or contains any network API
+  (`scripts/check-dist.mjs`), and CI runs browser security tests against the built page
+  (`e2e/security.e2e.mjs`): hostile files, exfiltration attempts, and the encrypted
+  on-device copy.
+
 ### Keeping real data out of this (public) repository
 
 - `.gitignore` blocks spreadsheets, CSVs, Numbers files and PDFs everywhere except
@@ -84,6 +97,7 @@ Test fixtures (synthetic data, regenerate with `npm run fixture`):
   QUIRKS list in `fixtures/make-realistic.mjs`)
 - `fixtures/realistic_blood_cp1251.csv`: its Blood sheet as Excel's `;` CSV in Windows-1251
 - `fixtures/realistic_urine.numbers`: its Urine sheet as an Apple Numbers file
+- `fixtures/hostile_*.{xlsx,xls}`: files that try to run script or reach the network
 
 ## Scripts
 
@@ -93,6 +107,8 @@ Test fixtures (synthetic data, regenerate with `npm run fixture`):
 | `npm run build` | Typecheck + single-file build to `dist/index.html` |
 | `npm test` | Unit and fixture tests (Vitest) |
 | `npm run typecheck` | TypeScript only |
+| `npm run test:e2e` | Browser security tests on the built page (needs Playwright + Chromium) |
+| `npm run check:dist` | Verify the built page's CSP and absence of network code |
 | `npm run fixture` | Rebuild the sample workbook |
 
 ## Layout

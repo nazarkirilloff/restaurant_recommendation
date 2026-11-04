@@ -10,9 +10,10 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "fixture": "node fixtures/make-sample.mjs && node fixtures/make-realistic.mjs",
+    "fixture": "node fixtures/make-sample.mjs && node fixtures/make-realistic.mjs && node fixtures/make-hostile.mjs",
     "preview": "vite preview",
-    "check:dist": "node scripts/check-dist.mjs"
+    "check:dist": "node scripts/check-dist.mjs",
+    "test:e2e": "node e2e/security.e2e.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",

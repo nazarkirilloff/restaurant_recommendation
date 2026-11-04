@@ -49,8 +49,19 @@ jobs:
         env:
           TZ: Pacific/Kiritimati
 
+      # Also verifies the built page: strict CSP, no network code (scripts/check-dist.mjs).
       - name: Build single-file HTML
         run: npm run build
+
+      - name: Install Chromium for browser tests
+        run: |
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      # Hostile files, exfiltration attempts, and the encrypted on-device copy,
+      # against the real built page.
+      - name: Browser security tests
+        run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4
         with:
