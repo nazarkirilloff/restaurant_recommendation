@@ -121,6 +121,9 @@ Test fixtures (synthetic data, regenerate with `npm run fixture`):
 
 ## Dependencies
 
-SheetJS (`xlsx`) is installed from the official SheetJS CDN (0.20.3, checksum pinned in
-`package-lock.json`), because the npm registry copy (0.18.5) has known security issues.
-`npm install` therefore needs access to `cdn.sheetjs.com`.
+SheetJS (`xlsx`) is **vendored**: `vendor/xlsx-0.20.3.tgz` is the official tarball from the
+SheetJS CDN (the npm registry copy, 0.18.5, has known security issues). Its sha512 is pinned in
+`package-lock.json`, so `npm install` verifies it and needs no access to `cdn.sheetjs.com`.
+The package has no install scripts and no dependencies. To upgrade: download the new tarball
+from `https://cdn.sheetjs.com/`, put it in `vendor/`, and run
+`npm install xlsx@file:vendor/xlsx-<version>.tgz`.
