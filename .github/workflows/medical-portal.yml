@@ -44,6 +44,11 @@ jobs:
       - name: Dependency audit
         run: npm audit --audit-level=high
 
+      # Every package from the npm registry must carry a valid registry signature
+      # (not altered after publishing). The vendored SheetJS is pinned by sha512 instead.
+      - name: Verify package signatures
+        run: npm audit signatures
+
       - name: Typecheck
         run: npm run typecheck
 

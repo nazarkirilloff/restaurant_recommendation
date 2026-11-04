@@ -34,8 +34,11 @@ left by an earlier version is deleted on startup.
 
 ### Supply chain
 
-- CI installs with `npm ci --ignore-scripts` (no dependency runs code at install time) and
-  fails on any high or critical `npm audit` finding.
+- CI installs with `npm ci --ignore-scripts` (no dependency runs code at install time),
+  fails on any high or critical `npm audit` finding, and verifies every registry package's
+  signature (`npm audit signatures`).
+- Few dependencies: React, lucide icons and the vendored SheetJS. Charts are hand-written
+  SVG (`src/components/TrendChart.tsx`, `Sparkline.tsx`, geometry in `src/lib/chartGeometry.ts`).
 - GitHub Actions are pinned to commit SHAs; the job token is read-only and not persisted.
 - Dependabot opens weekly PRs for npm packages and Actions; each runs the full CI,
   including the browser security tests.
@@ -66,7 +69,7 @@ left by an earlier version is deleted on startup.
 
 ```bash
 npm install
-npm run build        # → dist/index.html (one self-contained file, ~1 MB) + dist/_headers
+npm run build        # → dist/index.html (one self-contained file, ~650 KB) + dist/_headers
 ```
 
 Open `dist/index.html` in any browser (double-click works, no server needed) and drop in

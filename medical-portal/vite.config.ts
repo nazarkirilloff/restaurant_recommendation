@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, minifySync, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
@@ -67,7 +67,24 @@ function contentSecurityPolicy(): Plugin {
     },
     writeBundle() {
       const file = join(outDir, "index.html");
-      const html = readFileSync(file, "utf8");
+      // Minify what the bundler doesn't touch: the small inline head script and
+      // the markup (comments, indentation). Done before hashing, so the CSP
+      // hashes match the final bytes.
+      // Only the <head> is touched: the bundle's own code (in <body>) is already
+      // minified and contains "<script>" strings of its own.
+      const raw = readFileSync(file, "utf8");
+      const headEnd = raw.indexOf("</head>");
+      if (headEnd < 0) throw new Error("CSP: </head> not found");
+      const head = raw
+        .slice(0, headEnd)
+        .replace(/<script>([\s\S]*?)<\/script>/g, (_, code: string) => {
+          const out = minifySync("inline.js", code);
+          if (out.errors?.length) throw new Error(`minify inline script: ${out.errors[0].message}`);
+          return `<script>${out.code.trim()}</script>`;
+        })
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/>\s+</g, "><");
+      const html = head + raw.slice(headEnd);
       const hashes = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(
         (m) => `'sha256-${createHash("sha256").update(m[1]).digest("base64")}'`,
       );
@@ -75,7 +92,7 @@ function contentSecurityPolicy(): Plugin {
       const meta = `<meta http-equiv="Content-Security-Policy" content="${csp(hashes)}" />`;
       const charset = /<meta charset="UTF-8"\s*\/?>/i;
       if (!charset.test(html)) throw new Error("CSP: <meta charset> not found");
-      writeFileSync(file, html.replace(charset, (m) => `${m}\n    ${meta}`));
+      writeFileSync(file, html.replace(charset, (m) => `${m}${meta}`));
       const headers = Object.entries(securityHeaders(csp(hashes)))
         .map(([k, v]) => `  ${k}: ${v}`)
         .join("\n");
