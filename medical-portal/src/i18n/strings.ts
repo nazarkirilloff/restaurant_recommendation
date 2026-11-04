@@ -72,6 +72,14 @@ const en = {
       message: "Could not read this Numbers file.",
       detail: "In Numbers choose File → Export To → Excel…, then upload that file.",
     }),
+    tooComplex: () => ({
+      message: "This file is too big to analyse.",
+      detail: "Limits: 50 sheets, 5,000 rows and 300 columns per sheet. Lab result files are much smaller.",
+    }),
+    timeout: () => ({
+      message: "Reading this file took too long.",
+      detail: "It was stopped after 30 seconds. Is it really a lab results spreadsheet?",
+    }),
     noResultSheets: () => ({
       message: "No result sheets found in this file.",
       detail:
@@ -266,6 +274,14 @@ const uk: Strings = {
     numbersUnreadable: () => ({
       message: "Не вдалося прочитати файл Numbers.",
       detail: "У Numbers виберіть Файл → Експортувати в → Excel…, потім завантажте цей файл.",
+    }),
+    tooComplex: () => ({
+      message: "Файл завеликий для аналізу.",
+      detail: "Обмеження: 50 аркушів, 5 000 рядків і 300 стовпців на аркуш. Файли з аналізами значно менші.",
+    }),
+    timeout: () => ({
+      message: "Читання файлу тривало надто довго.",
+      detail: "Його зупинено через 30 секунд. Це справді таблиця з результатами аналізів?",
     }),
     noResultSheets: () => ({
       message: "У файлі не знайдено аркушів із результатами.",

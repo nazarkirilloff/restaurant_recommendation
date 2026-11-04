@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import type { DeviceMemory } from "../hooks/useDeviceMemory";
 import { RememberPanel } from "./RememberPanel";
-import { parseFile } from "../lib/parseFile";
+import { parseInBrowser } from "../lib/parseInBrowser";
 import type { ParsedWorkbook, ParseResult } from "../types";
 import { useI18n } from "../i18n/I18n";
 
@@ -26,7 +26,7 @@ export function FileUpload({ onLoaded, memory }: Props) {
     async (file: File) => {
       setBusy(true);
       setError(null);
-      const result = await parseFile(file);
+      const result = await parseInBrowser(file);
       setBusy(false);
       if (result.ok) {
         await keep(file);

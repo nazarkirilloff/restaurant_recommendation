@@ -95,7 +95,9 @@ export type ParseErrorCode =
   | "tooLarge"
   | "unreadable"
   | "numbersUnreadable"
-  | "noResultSheets";
+  | "noResultSheets"
+  | "tooComplex"
+  | "timeout";
 
 export type ParseResult =
   | { ok: true; workbook: ParsedWorkbook }
