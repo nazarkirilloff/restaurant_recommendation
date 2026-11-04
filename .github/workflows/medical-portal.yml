@@ -1,0 +1,100 @@
+name: medical-portal
+
+on:
+  push:
+    paths:
+      - "medical-portal/**"
+      - ".github/workflows/medical-portal.yml"
+      - ".gitignore"
+  pull_request:
+    paths:
+      - "medical-portal/**"
+      - ".github/workflows/medical-portal.yml"
+      - ".gitignore"
+
+# Read-only token; nothing in this workflow writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: medical-portal
+    steps:
+      # Actions are pinned to full commit SHAs (tags can be moved); Dependabot keeps them current.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: medical-portal/package-lock.json
+
+      # No dependency gets to run code at install time (none needs to: only the
+      # macOS-only optional fsevents declares an install script).
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # Fails on any high or critical advisory in any dependency.
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+      # Every package from the npm registry must carry a valid registry signature
+      # (not altered after publishing). The vendored SheetJS is pinned by sha512 instead.
+      # Retried because fetching the signing keys occasionally fails on the registry
+      # side (EMISSINGSIGNATUREKEY one run, success the next, same packages); a real
+      # signature problem fails every attempt and still fails the build.
+      - name: Verify package signatures
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit signatures; then exit 0; fi
+            echo "::warning::npm audit signatures failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::package signatures could not be verified"
+          exit 1
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests (UTC)
+        run: npm test
+
+      # Lab dates are calendar days; catch off-by-one-day bugs west and east of UTC.
+      - name: Tests (UTC−8)
+        run: npm test
+        env:
+          TZ: America/Los_Angeles
+
+      - name: Tests (UTC+14)
+        run: npm test
+        env:
+          TZ: Pacific/Kiritimati
+
+      # Also verifies the built page: strict CSP, parser only in the worker,
+      # no network code (scripts/check-dist.mjs).
+      - name: Build single-file HTML
+        run: npm run build
+
+      - name: Install Chromium for browser tests
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      # Hostile files, exfiltration attempts, and the encrypted on-device copy,
+      # against the real built page.
+      - name: Browser security tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lab-results-portal
+          path: |
+            medical-portal/dist/index.html
+            medical-portal/dist/_headers
+          if-no-files-found: error

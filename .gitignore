@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -127,3 +127,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# --- Lab results: never commit real data (this repository is public) ---
+# Spreadsheets, exports and printed reports are ignored everywhere. The only
+# exception is medical-portal/fixtures/, which holds generated synthetic files;
+# a test (src/lib/fixtures.test.ts) fails if one isn't marked synthetic.
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.tsv
+*.numbers
+*.ods
+*.pdf
+!medical-portal/fixtures/*

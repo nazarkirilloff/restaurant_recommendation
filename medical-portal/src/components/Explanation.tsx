@@ -1,0 +1,63 @@
+import type { Marker, Status } from "../types";
+import { getExplanation } from "../data/markerExplanations";
+import { useI18n } from "../i18n/I18n";
+
+interface Props {
+  marker: Marker;
+  status: Status;
+}
+
+export function Explanation({ marker, status }: Props) {
+  const { lang, t } = useI18n();
+  const explanation = getExplanation(marker.nameEn, lang);
+  const biohackerNote = marker.biohacker.note;
+  const standardNote = marker.standard.note;
+
+  if (!explanation && !biohackerNote && !standardNote) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+      {explanation && (
+        <p>
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {t.explanation.whatItIs}
+          </span>{" "}
+          {explanation.summary}
+        </p>
+      )}
+      {explanation?.high && status === "high" && (
+        <p className="mt-2">
+          <span className="font-medium text-rose-700 dark:text-rose-300">
+            {t.explanation.aboveRange}
+          </span>{" "}
+          {explanation.high}
+        </p>
+      )}
+      {explanation?.low && status === "low" && (
+        <p className="mt-2">
+          <span className="font-medium text-rose-700 dark:text-rose-300">
+            {t.explanation.belowRange}
+          </span>{" "}
+          {explanation.low}
+        </p>
+      )}
+      {(standardNote || biohackerNote) && (
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          {standardNote && (
+            <span>
+              <span className="font-medium">{t.explanation.standardNote}</span> {standardNote}
+              {biohackerNote ? " · " : ""}
+            </span>
+          )}
+          {biohackerNote && (
+            <span>
+              <span className="font-medium">{t.explanation.biohackerNote}</span> {biohackerNote}
+            </span>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,29 @@
+# Keeps dependencies and GitHub Actions (pinned by SHA) up to date with
+# security fixes. Every Dependabot PR runs the full CI: tests, the built-page
+# privacy check, and the browser security tests.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /medical-portal
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # SheetJS is vendored from its own CDN (vendor/), not the npm registry,
+    # so Dependabot can't update it; see the README for the manual steps.
+    ignore:
+      - dependency-name: xlsx
+    groups:
+      dev-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
