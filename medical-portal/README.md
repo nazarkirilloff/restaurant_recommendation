@@ -32,6 +32,14 @@ left by an earlier version is deleted on startup.
   (`e2e/security.e2e.mjs`): hostile files, exfiltration attempts, and the encrypted
   on-device copy.
 
+### Supply chain
+
+- CI installs with `npm ci --ignore-scripts` (no dependency runs code at install time) and
+  fails on any high or critical `npm audit` finding.
+- GitHub Actions are pinned to commit SHAs; the job token is read-only and not persisted.
+- Dependabot opens weekly PRs for npm packages and Actions; each runs the full CI,
+  including the browser security tests.
+
 ### Keeping real data out of this (public) repository
 
 - `.gitignore` blocks spreadsheets, CSVs, Numbers files and PDFs everywhere except
@@ -65,7 +73,8 @@ Open `dist/index.html` in any browser (double-click works, no server needed) and
 your `.xlsx`, `.numbers` or `.csv`. Every CI run also attaches the built file as the
 `lab-results-portal` artifact.
 
-For development: `npm run dev`.
+For development: `npm run dev` (serves on `http://127.0.0.1:5173` only — never on your
+network).
 
 ## File format
 

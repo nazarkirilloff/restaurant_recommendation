@@ -12,25 +12,37 @@ on:
       - ".github/workflows/medical-portal.yml"
       - ".gitignore"
 
+# Read-only token; nothing in this workflow writes to the repository.
 permissions:
   contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: medical-portal
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to full commit SHAs (tags can be moved); Dependabot keeps them current.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: medical-portal/package-lock.json
 
-      - run: npm ci
+      # No dependency gets to run code at install time (none needs to: only the
+      # macOS-only optional fsevents declares an install script).
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # Fails on any high or critical advisory in any dependency.
+      - name: Dependency audit
+        run: npm audit --audit-level=high
 
       - name: Typecheck
         run: npm run typecheck
@@ -49,13 +61,14 @@ jobs:
         env:
           TZ: Pacific/Kiritimati
 
-      # Also verifies the built page: strict CSP, no network code (scripts/check-dist.mjs).
+      # Also verifies the built page: strict CSP, parser only in the worker,
+      # no network code (scripts/check-dist.mjs).
       - name: Build single-file HTML
         run: npm run build
 
       - name: Install Chromium for browser tests
         run: |
-          npm install --no-save playwright@1.63.0
+          npm install --no-save --ignore-scripts playwright@1.63.0
           npx playwright install --with-deps chromium
 
       # Hostile files, exfiltration attempts, and the encrypted on-device copy,
@@ -63,7 +76,7 @@ jobs:
       - name: Browser security tests
         run: npm run test:e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: lab-results-portal
           path: medical-portal/dist/index.html
