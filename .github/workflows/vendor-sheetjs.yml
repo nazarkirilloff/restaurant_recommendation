@@ -1,0 +1,40 @@
+# ONE-OFF: downloads the official SheetJS 0.20.3 tarball, verifies it against the
+# sha512 already pinned in medical-portal/package-lock.json, and commits it to
+# medical-portal/vendor/. Needed because the development sandbox can't reach
+# cdn.sheetjs.com. Deleted again in the commit that switches to the vendored file.
+name: vendor-sheetjs (one-off)
+
+on:
+  push:
+    branches: [claude/medical-blood-test-portal-zeffP]
+    paths: [".github/workflows/vendor-sheetjs.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download, verify, commit
+        working-directory: medical-portal
+        env:
+          URL: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+          FILE: vendor/xlsx-0.20.3.tgz
+        run: |
+          if [ -f "$FILE" ]; then echo "already vendored"; exit 0; fi
+          # The expected checksum is the one npm already enforces (package-lock.json).
+          expected=$(node -p 'require("./package-lock.json").packages["node_modules/xlsx"].integrity')
+          mkdir -p vendor
+          curl -fsSL "$URL" -o "$FILE"
+          got="sha512-$(openssl dgst -sha512 -binary "$FILE" | base64 -w0)"
+          echo "expected $expected"
+          echo "got      $got"
+          [ "$got" = "$expected" ] || { echo "::error::checksum mismatch, not committing"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "Vendor official SheetJS 0.20.3 tarball (sha512 matches package-lock.json)"
+          git push
