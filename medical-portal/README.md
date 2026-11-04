@@ -6,9 +6,26 @@ medical ranges or tighter "biohacker" (Attia / Outlive) targets.
 
 **Privacy:** the file is read inside your browser. Nothing is uploaded or sent anywhere,
 and the built page makes no network requests. By default nothing is stored either —
-reloading clears it. An opt-in "Remember my last file on this device" keeps a copy in this
-browser only (IndexedDB) so you can reopen it; "Forget it", or turning the option off,
-deletes it.
+reloading clears it.
+
+The opt-in "Remember my last file on this device (encrypted)" keeps a copy in this
+browser's IndexedDB, **encrypted with your passphrase** (AES-GCM-256, key from
+PBKDF2-SHA256 with 600,000 iterations; file name and date are inside the encryption).
+This matters because on `file://` — and on shared hosts such as `*.github.io` — other
+pages share the same storage and could otherwise read it; now they only see ciphertext,
+and a modified copy fails to open. The passphrase is never stored and can't be
+recovered: "Forget it", or turning the option off, deletes the copy. A plaintext copy
+left by an earlier version is deleted on startup.
+
+> Educational visualization only — not medical advice.
+
+### Keeping real data out of this (public) repository
+
+- `.gitignore` blocks spreadsheets, CSVs, Numbers files and PDFs everywhere except
+  `fixtures/`.
+- `fixtures/` holds only generated synthetic files; `src/lib/fixtures.test.ts` fails CI
+  if a data file there isn't marked "synthetic".
+- Keep your real results outside the repository folder.
 
 ## Features
 
@@ -23,8 +40,6 @@ deletes it.
   and changes — print or save as PDF (A4)
 - **English / Українська** interface, including explanations; dark mode; keyboard
   accessible
-
-> Educational visualization only — not medical advice.
 
 ## Use it
 

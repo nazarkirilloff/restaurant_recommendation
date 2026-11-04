@@ -135,7 +135,7 @@ function dataSheet(title, dates, rows) {
 export function buildRealisticWorkbook() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, dataSheet("Аналіз крові / Blood — patient #0042 (synthetic)", BLOOD_DATES, BLOOD), "Blood");
-  XLSX.utils.book_append_sheet(wb, dataSheet("Аналіз сечі / Urine", URINE_DATES, URINE.map((r) => [...r, ""])), "Urine");
+  XLSX.utils.book_append_sheet(wb, dataSheet("Аналіз сечі / Urine (synthetic)", URINE_DATES, URINE.map((r) => [...r, ""])), "Urine");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(NOTES), "Notes");
   return wb;
 }
