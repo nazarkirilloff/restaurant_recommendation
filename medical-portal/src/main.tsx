@@ -1,3 +1,5 @@
+// Must run first: installs the Trusted Types policy the CSP requires.
+import "./security/trustedTypes";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
