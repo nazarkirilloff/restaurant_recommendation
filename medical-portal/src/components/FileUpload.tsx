@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-import { FileSpreadsheet, History, Trash2, Upload } from "lucide-react";
+import { FileSpreadsheet, Upload } from "lucide-react";
 import type { DeviceMemory } from "../hooks/useDeviceMemory";
-import { formatDateLong } from "../lib/format";
+import { RememberPanel } from "./RememberPanel";
 import { parseFile } from "../lib/parseFile";
 import type { ParsedWorkbook, ParseResult } from "../types";
 import { useI18n } from "../i18n/I18n";
@@ -96,52 +96,7 @@ export function FileUpload({ onLoaded, memory }: Props) {
         />
       </label>
 
-      {memory.available && (
-        <div className="mt-4 space-y-3">
-          {memory.saved && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-              <div className="min-w-0">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    const s = memory.saved!;
-                    void handleFile(new File([s.bytes], s.name));
-                  }}
-                  className="inline-flex max-w-full items-center gap-2 text-sm font-medium text-teal-700 hover:underline disabled:opacity-50 dark:text-teal-300"
-                >
-                  <History className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="truncate">{t.remember.reopen(memory.saved.name)}</span>
-                </button>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {t.remember.saved(formatDateLong(new Date(memory.saved.savedAt), t.locale))}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void memory.forget()}
-                title={t.remember.forgetTitle}
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                {t.remember.forget}
-              </button>
-            </div>
-          )}
-          <label className="flex cursor-pointer items-start gap-2.5 px-1 text-sm">
-            <input
-              type="checkbox"
-              checked={memory.remember}
-              onChange={(e) => memory.setRemember(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-teal-700"
-            />
-            <span>
-              <span className="font-medium">{t.remember.optIn}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t.remember.help}</span>
-            </span>
-          </label>
-        </div>
-      )}
+      <RememberPanel memory={memory} onOpen={(f) => void handleFile(f)} busy={busy} />
 
       {error && shown && (
         <div

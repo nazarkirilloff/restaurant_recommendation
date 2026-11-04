@@ -150,7 +150,7 @@ export default function App() {
           </div>
           <FileUpload onLoaded={setWorkbook} memory={memory} />
         </main>
-        <Footer remembered={memory.remember && !!memory.saved} />
+        <Footer remembered={memory.remember && memory.hasSaved} />
       </div>
     );
   }
@@ -265,7 +265,7 @@ export default function App() {
           )}
         </div>
       </main>
-      <Footer remembered={memory.remember && !!memory.saved} />
+      <Footer remembered={memory.remember && memory.hasSaved} />
     </div>
   );
 }

@@ -1,17 +1,19 @@
-// Opt-in, on-device storage of the last opened file (IndexedDB). Nothing here
-// ever leaves the browser. Every call fails soft: if storage is blocked
-// (private window, file:// restrictions, cleared data) callers get null/false.
+// Opt-in, on-device storage of the last opened file (IndexedDB), encrypted
+// with the user's passphrase (see vault.ts). Only sealed records are ever
+// written; anything else found under the key — e.g. a plaintext copy from an
+// earlier version — is deleted on sight. Every call fails soft: if storage is
+// blocked (private window, cleared data) callers get null/false.
+//
+// Why encrypt: on file:// Chromium gives every local page one shared storage
+// origin, and a shared host (e.g. *.github.io) does the same, so other pages
+// can read this database. They now only see ciphertext.
+
+import { isSealed, type SealedFile } from "./vault";
 
 const DB_NAME = "medical-portal";
 const STORE = "files";
 const KEY = "last";
 const PREF_KEY = "medical-portal:remember";
-
-export interface SavedFile {
-  name: string;
-  savedAt: number;
-  bytes: ArrayBuffer;
-}
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -48,20 +50,27 @@ export async function storageAvailable(): Promise<boolean> {
   }
 }
 
-export async function saveFile(name: string, bytes: ArrayBuffer): Promise<boolean> {
+export async function saveSealed(sealed: SealedFile): Promise<boolean> {
   try {
-    const value: SavedFile = { name, savedAt: Date.now(), bytes };
-    await run("readwrite", (s) => s.put(value, KEY));
+    await run("readwrite", (s) => s.put(sealed, KEY));
     return true;
   } catch {
     return false;
   }
 }
 
-export async function loadFile(): Promise<SavedFile | null> {
+/**
+ * The stored sealed record, if any. A record that isn't a valid sealed file
+ * (plaintext from an older version, or junk written by another page) is
+ * deleted and reported as absent.
+ */
+export async function loadSealed(): Promise<SealedFile | null> {
   try {
-    const v = await run<SavedFile | undefined>("readonly", (s) => s.get(KEY));
-    return v && v.bytes ? v : null;
+    const v = await run<unknown>("readonly", (s) => s.get(KEY));
+    if (v === undefined) return null;
+    if (isSealed(v)) return v;
+    await forgetFile();
+    return null;
   } catch {
     return null;
   }
