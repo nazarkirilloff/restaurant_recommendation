@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:html": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-dist.mjs",
+    "build:html": "tsc -b && vite build && node scripts/check-dist.mjs",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
     "fixture": "node fixtures/make-sample.mjs && node fixtures/make-realistic.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:dist": "node scripts/check-dist.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",
