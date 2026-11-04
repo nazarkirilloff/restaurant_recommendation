@@ -174,16 +174,25 @@ try {
       otherHtml,
       `<!doctype html><script>window.peek=()=>new Promise(res=>{const r=indexedDB.open("medical-portal",1);
 r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>{const g=r.result.transaction("files").objectStore("files").get("last");
-g.onsuccess=()=>{const v=g.result;res(v?{keys:Object.keys(v).sort(),text:v.ct?new TextDecoder("latin1").decode(new Uint8Array(v.ct)):""}:null)}}})</script>`,
+g.onsuccess=()=>{const v=g.result;res(v?{keys:Object.keys(v).sort(),ct:v.ct?Array.from(new Uint8Array(v.ct)):[]}:null)}}})</script>`,
     );
     const other = await context.newPage();
     await other.goto(`file://${otherHtml}`);
     const seen = await other.evaluate(() => window.peek());
     check("another local page can find the record", !!seen, "nothing stored?");
+    // Look for sequences that can't occur in random ciphertext by chance: the
+    // file's first 32 bytes (zip header + first entry name) and its full name.
+    // (Short patterns like "PK" do appear in random bytes now and then.)
+    const ct = Buffer.from(seen?.ct ?? []);
+    const original = readFileSync(FIX("realistic_lab_results.xlsx"));
+    const leaks = [
+      ["file header", original.subarray(0, 32)],
+      ["file name", Buffer.from("realistic_lab_results.xlsx")],
+    ].filter(([, needle]) => ct.includes(needle));
     check(
       "…but only ciphertext: no name, no bytes",
-      seen && seen.keys.join(",") === "ct,iterations,iv,kdf,salt,v" && !/realistic|xlsx|Blood|Marker|PK/.test(seen.text.slice(0, 4096)),
-      JSON.stringify(seen?.keys),
+      seen && seen.keys.join(",") === "ct,iterations,iv,kdf,salt,v" && ct.length > original.length && leaks.length === 0,
+      `${JSON.stringify(seen?.keys)} leaks: ${leaks.map(([n]) => n).join(", ") || "none"}`,
     );
     await other.close();
 
