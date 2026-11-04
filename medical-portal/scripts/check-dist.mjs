@@ -126,6 +126,21 @@ for (const m of markup.matchAll(/\b(src|href|action|poster|data)\s*=\s*"([^"]*)"
   if (!/^(data:|blob:|#|$)/.test(m[2])) fail(`markup loads a URL: ${m[0].slice(0, 80)}`);
 }
 
+// --- 5. hosting headers match the page --------------------------------------------
+const headersFile = new URL("_headers", `file://${file.replace(/[^/]*$/, "")}`);
+let headersText = null;
+try {
+  headersText = readFileSync(headersFile, "utf8");
+} catch {
+  fail("dist/_headers is missing (hosting headers)");
+}
+if (headersText !== null) {
+  const headerCsp = /^\s*Content-Security-Policy:\s*(.+)$/m.exec(headersText)?.[1]?.trim();
+  if (headerCsp !== `${metas[0]?.[1]}; frame-ancestors 'none'`) {
+    fail("_headers CSP must equal the page's CSP plus frame-ancestors 'none'");
+  }
+}
+
 // --- report -----------------------------------------------------------------------
 if (failures.length) {
   console.error(`✗ ${file}\n${failures.map((f) => `  - ${f}`).join("\n")}`);

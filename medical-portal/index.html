@@ -4,8 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <!-- Never send a Referer (works even where the host can't set headers). -->
+    <meta name="referrer" content="no-referrer" />
     <title>Lab Results Portal</title>
     <script>
+      // Clickjacking guard for hosts that can't send "frame-ancestors 'none'"
+      // (e.g. GitHub Pages): if another page embeds this one, show nothing.
+      if (window.top !== window.self) {
+        document.documentElement.style.display = "none";
+      }
       // Apply persisted theme before paint to avoid flash.
       (function () {
         try {

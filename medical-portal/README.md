@@ -66,7 +66,7 @@ left by an earlier version is deleted on startup.
 
 ```bash
 npm install
-npm run build        # → dist/index.html (one self-contained file, ~1 MB)
+npm run build        # → dist/index.html (one self-contained file, ~1 MB) + dist/_headers
 ```
 
 Open `dist/index.html` in any browser (double-click works, no server needed) and drop in
@@ -75,6 +75,34 @@ your `.xlsx`, `.numbers` or `.csv`. Every CI run also attaches the built file as
 
 For development: `npm run dev` (serves on `http://127.0.0.1:5173` only — never on your
 network).
+
+## Hosting (optional)
+
+Opening `dist/index.html` from disk needs nothing else. If you put it on a web server:
+
+- **Use a dedicated origin** — your own (sub)domain such as `labs.example.org`, not a path on
+  a shared host like `username.github.io/repo`. Pages on one origin share storage, so other
+  projects on a shared origin could read or delete the (encrypted) remembered file.
+- **Send the security headers** the build writes to `dist/_headers` (regenerated on every
+  build, because the CSP pins script hashes):
+  - **Netlify / Cloudflare Pages:** deploy `dist/` as is; both read `_headers`.
+  - **nginx:** one `add_header <Name> "<value>" always;` line per header from `_headers`.
+  - **Apache:** one `Header always set <Name> "<value>"` line per header.
+  - **GitHub Pages** can't set headers. The page still enforces its CSP (meta tag), never
+    sends a referrer, and hides itself if another site embeds it (frame guard). But HSTS,
+    `X-Content-Type-Options` and the other headers are missing, and `*.github.io` is a
+    shared origin. Prefer another host.
+- **Serve over HTTPS only.**
+- **Check the deployment:** `node scripts/check-headers.mjs https://labs.example.org/`
+  exits non-zero and lists anything missing.
+
+The headers add, beyond the page's own CSP: `frame-ancestors 'none'` and `X-Frame-Options`
+(no clickjacking), HSTS, `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`,
+`Cross-Origin-Opener-Policy` / `-Resource-Policy: same-origin`, and a `Permissions-Policy`
+that turns off camera, microphone, location, payment and device APIs. The browser tests
+serve the built page over HTTP with these headers and check that it works, that
+`check-headers` accepts it, and that embedding it on another origin fails, with and
+without headers.
 
 ## File format
 
@@ -118,6 +146,7 @@ Test fixtures (synthetic data, regenerate with `npm run fixture`):
 | `npm run typecheck` | TypeScript only |
 | `npm run test:e2e` | Browser security tests on the built page (needs Playwright + Chromium) |
 | `npm run check:dist` | Verify the built page's CSP and absence of network code |
+| `node scripts/check-headers.mjs <url>` | Verify a deployed copy's security headers |
 | `npm run fixture` | Rebuild the sample workbook |
 
 ## Layout

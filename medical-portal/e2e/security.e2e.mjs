@@ -8,7 +8,9 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createServer } from "node:http";
 import * as XLSX from "xlsx";
+import { headerProblems } from "../scripts/check-headers.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
@@ -204,6 +206,78 @@ g.onsuccess=()=>{const v=g.result;res(v?{keys:Object.keys(v).sort(),ct:v.ct?Arra
     await page.getByRole("button", { name: "Open saved file" }).click();
     check("right passphrase reopens the file", await loaded(page));
     await page.close();
+  }
+  // 7. Hosted over HTTP: generated headers, and clickjacking protection with and without them.
+  {
+    const page0 = readFileSync(join(root, "dist/index.html"));
+    const hostHeaders = Object.fromEntries(
+      [...readFileSync(join(root, "dist/_headers"), "utf8").matchAll(/^\s+([\w-]+):\s*(.+)$/gm)].map((m) => [m[1], m[2]]),
+    );
+    const html = { "Content-Type": "text/html; charset=utf-8" };
+    const server = createServer((req, res) => {
+      const port = server.address().port;
+      if (req.url === "/") res.writeHead(200, { ...html, ...hostHeaders }).end(page0); // a host applying _headers
+      else if (req.url === "/bare/") res.writeHead(200, html).end(page0); // a host that can't set headers
+      else if (req.url === "/frame" || req.url === "/frame-bare") {
+        // The attacker's page, on another origin (localhost vs 127.0.0.1), embeds the portal.
+        const target = `http://127.0.0.1:${port}${req.url === "/frame" ? "/" : "/bare/"}`;
+        res.writeHead(200, html).end(`<!doctype html><iframe src="${target}" width="900" height="700"></iframe>`);
+      } else res.writeHead(404).end();
+    });
+    await new Promise((r) => server.listen(0, "127.0.0.1", r));
+    const port = server.address().port;
+    const app = `http://127.0.0.1:${port}`;
+    try {
+      const good = await fetch(`${app}/`);
+      const goodProblems = headerProblems(good.headers, await good.text(), { https: false });
+      check("hosted: generated headers pass check-headers", goodProblems.length === 0, goodProblems.join("; "));
+      const bare = await fetch(`${app}/bare/`);
+      check("hosted: check-headers flags a host without headers", headerProblems(bare.headers, await bare.text(), { https: false }).length >= 5);
+
+      // The app works under the header CSP too (worker, charts, report).
+      const page = await context.newPage();
+      const rec = { violations: [], errors: [], requests: [] };
+      page.on("console", (m) => {
+        if (/Content.Security|Trusted Type|Refused to|Permissions-Policy/i.test(m.text())) rec.violations.push(m.text().slice(0, 140));
+        else if (m.type() === "error") rec.errors.push(m.text().slice(0, 140));
+      });
+      page.on("pageerror", (e) => rec.errors.push(String(e).slice(0, 140)));
+      page.on("request", (r) => !r.url().startsWith(app) && !/^(data|blob):/.test(r.url()) && rec.requests.push(r.url()));
+      await page.goto(`${app}/`);
+      await page.setInputFiles("#file-input", FIX("realistic_lab_results.xlsx"));
+      const ok = await loaded(page);
+      if (ok) {
+        await page.locator("main button[aria-expanded]").nth(1).click();
+        await page.getByRole("button", { name: /^Report$/ }).first().click();
+      }
+      check("hosted: app works over HTTP with the headers", ok);
+      check("hosted: no violations, errors or outside requests", !rec.violations.length && !rec.errors.length && !rec.requests.length, [...rec.violations, ...rec.errors, ...rec.requests].join(" | "));
+      await page.close();
+
+      // Clickjacking: with headers the browser refuses to frame the page…
+      const attacker = await context.newPage();
+      await attacker.goto(`http://localhost:${port}/frame`);
+      await attacker.waitForTimeout(800);
+      const framed = attacker.frames().find((f) => f !== attacker.mainFrame());
+      const rendered = framed ? await framed.evaluate(() => !!document.getElementById("root")).catch(() => false) : false;
+      check("hosted: framing is refused (frame-ancestors / X-Frame-Options)", !rendered);
+      // …and without headers the frame guard hides it.
+      await attacker.goto(`http://localhost:${port}/frame-bare`);
+      await attacker.waitForTimeout(800);
+      const bareFrame = attacker.frames().find((f) => f !== attacker.mainFrame());
+      const display = bareFrame ? await bareFrame.evaluate(() => getComputedStyle(document.documentElement).display).catch((e) => `error ${e}`) : "no frame";
+      check("headerless host: a framed copy shows nothing (frame guard)", display === "none", display);
+      await attacker.close();
+      const direct = await context.newPage();
+      await direct.goto(`${app}/bare/`);
+      check(
+        "headerless host: opened directly, the page is visible",
+        (await direct.evaluate(() => getComputedStyle(document.documentElement).display)) !== "none" && (await direct.locator("#file-input").count()) === 1,
+      );
+      await direct.close();
+    } finally {
+      server.close();
+    }
   }
 } finally {
   await context.close();
