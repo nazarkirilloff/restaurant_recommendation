@@ -62,17 +62,15 @@ export default defineConfig({
   plugins: [react(), viteSingleFile(), contentSecurityPolicy()],
   server: {
     port: 5173,
-    host: true,
+    // Localhost only: never expose the dev server (and the project folder) to the network.
+    host: "127.0.0.1",
+    strictPort: true,
   },
   build: {
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
     // No <link rel="modulepreload"> exists in a single file; drop the fetch()-based polyfill.
     modulePreload: false,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
+    // (vite-plugin-singlefile turns code splitting off, so everything lands in one file.)
   },
 });

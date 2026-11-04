@@ -9,6 +9,7 @@
 //  4. No element loads anything from a URL.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { parseAst } from "vite";
 
 const file = process.argv[2] ?? new URL("../dist/index.html", import.meta.url).pathname;
 const html = readFileSync(file, "utf8");
@@ -61,8 +62,50 @@ for (const [, attrs, body] of scripts) {
   if (!scriptSrc.includes(hash)) fail(`inline script not allowed by CSP (hash ${hash})`);
 }
 
-// --- 3. no network APIs in any code, including inlined workers -----------------
-const workers = [...html.matchAll(/"([A-Za-z0-9+/]{1000,}={0,2})"/g)].map((m) => Buffer.from(m[1], "base64").toString("utf8"));
+// --- 3. parsing stays in the worker; no network APIs anywhere -----------------
+// Inlined workers are large string literals (base64 in Vite 5, plain source in
+// Vite 8). Find them with a real JS parser, so the checker doesn't depend on
+// how the bundler happens to encode them.
+const WORKER_MIN = 50_000;
+const workers = [];
+let mainCode = "";
+for (const [, , body] of scripts) {
+  const cuts = [];
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (node.type === "Literal" && typeof node.value === "string" && node.value.length >= WORKER_MIN) {
+      cuts.push([node.start, node.end, node.value]);
+      return;
+    }
+    if (node.type === "TemplateLiteral" && node.quasis.length === 1) {
+      const text = node.quasis[0].value.cooked ?? "";
+      if (text.length >= WORKER_MIN) {
+        cuts.push([node.start, node.end, text]);
+        return;
+      }
+    }
+    for (const key in node) if (key !== "type" && key !== "start" && key !== "end") visit(node[key]);
+  };
+  try {
+    visit(parseAst(body));
+  } catch (err) {
+    fail(`an inline script can't be parsed: ${String(err.message ?? err).slice(0, 80)}`);
+    continue;
+  }
+  let rest = "";
+  let at = 0;
+  for (const [start, end, text] of cuts.sort((a, b) => a[0] - b[0])) {
+    rest += body.slice(at, start);
+    at = end;
+    workers.push(/^[A-Za-z0-9+/]+={0,2}$/.test(text) ? Buffer.from(text, "base64").toString("utf8") : text);
+  }
+  mainCode += rest + body.slice(at) + "\n";
+}
+if (workers.length === 0) fail("no inlined worker found (is parsing back on the main thread?)");
+if (!workers.some((w) => /onmessage/.test(w) && /openxmlformats/.test(w))) fail("no inlined worker contains the spreadsheet parser");
+if (/openxmlformats|SheetJS/.test(mainCode)) fail("the spreadsheet parser is on the main thread (it must run only in the worker)");
+
 const NETWORK = {
   "fetch()": /\bfetch\s*\(/,
   XMLHttpRequest: /XMLHttpRequest/,
@@ -72,11 +115,10 @@ const NETWORK = {
   importScripts: /importScripts\s*\(/,
   RTCPeerConnection: /RTCPeerConnection/,
 };
-const code = [["page", scripts.map((m) => m[2]).join("\n")], ...workers.map((w, i) => [`worker ${i + 1}`, w])];
+const code = [["main thread", mainCode], ...workers.map((w, i) => [`worker ${i + 1}`, w])];
 for (const [where, text] of code) {
   for (const [api, re] of Object.entries(NETWORK)) if (re.test(text)) fail(`${api} found in ${where}`);
 }
-if (workers.length === 0) fail("no inlined worker found (is parsing back on the main thread?)");
 
 // --- 4. no element loads a URL --------------------------------------------------
 const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<style\b[\s\S]*?<\/style>/gi, "");
@@ -90,5 +132,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `✓ ${file}: strict CSP (${scriptSrc.length} script hashes, Trusted Types), no network APIs in page or ${workers.length} worker(s), no external resources`,
+  `✓ ${file}: strict CSP (${scriptSrc.length} script hashes, Trusted Types), parser only in ${workers.length} worker(s), no network APIs in page or worker, no external resources`,
 );
