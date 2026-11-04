@@ -161,6 +161,8 @@ const en = {
     detectionLimit: "Detection limit (true value is beyond it)",
     belowLimit: "Below the lab's detection limit — plotted at the limit",
     aboveLimit: "Above the lab's measurable limit — plotted at the limit",
+    ariaLabel: (n: number) =>
+      `Trend chart of ${n} ${plural("en", n, { one: "result", many: "results" })}. Use the arrow keys to read each value.`,
   },
   explanation: {
     whatItIs: "What it is.",
@@ -364,6 +366,8 @@ const uk: Strings = {
     detectionLimit: "Межа виявлення (справжнє значення за нею)",
     belowLimit: "Нижче межі виявлення лабораторії — показано на межі",
     aboveLimit: "Вище межі вимірювання лабораторії — показано на межі",
+    ariaLabel: (n: number) =>
+      `Графік зміни: ${n} ${plural("uk", n, { one: "результат", few: "результати", many: "результатів" })}. Стрілками можна переглянути кожне значення.`,
   },
   explanation: {
     whatItIs: "Що це.",
