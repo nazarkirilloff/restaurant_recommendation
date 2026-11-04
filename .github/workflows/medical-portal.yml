@@ -46,8 +46,18 @@ jobs:
 
       # Every package from the npm registry must carry a valid registry signature
       # (not altered after publishing). The vendored SheetJS is pinned by sha512 instead.
+      # Retried because fetching the signing keys occasionally fails on the registry
+      # side (EMISSINGSIGNATUREKEY one run, success the next, same packages); a real
+      # signature problem fails every attempt and still fails the build.
       - name: Verify package signatures
-        run: npm audit signatures
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit signatures; then exit 0; fi
+            echo "::warning::npm audit signatures failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::package signatures could not be verified"
+          exit 1
 
       - name: Typecheck
         run: npm run typecheck
